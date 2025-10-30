@@ -1,10 +1,11 @@
 #include "DxLib.h"
+#include "Player.h"
 
 void DxInit()
 {
 	ChangeWindowMode(true);
 	SetWindowSizeChangeEnableFlag(false, false);
-	SetMainWindowText("TITLE");
+	SetMainWindowText("Roguelike");
 	SetGraphMode(1280, 720, 32);
 	SetWindowSizeExtendRate(1.0);
 	SetBackgroundColor(0, 0, 0);
@@ -27,7 +28,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	{
 		ClearDrawScreen();
 		//Ç±Ç±Ç…Ç‚ÇËÇΩÇ¢èàóùÇèëÇ≠
-
+		new Player();
 
 		ScreenFlip();
 		WaitTimer(16);
