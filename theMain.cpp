@@ -23,12 +23,14 @@ void DxInit()
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
 {
 	DxInit();
+	Player* player = new Player();
 
 	while (true)
 	{
 		ClearDrawScreen();
 		//‚±‚±‚É‚â‚è‚½‚¢ˆ—‚ð‘‚­
-		new Player();
+		player->Update();
+		player->Draw();
 
 		ScreenFlip();
 		WaitTimer(16);
@@ -38,6 +40,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1)
 			break;
 	}
+	delete player;
 
 	DxLib_End();
 	return 0;
