@@ -1,5 +1,6 @@
 #include "DxLib.h"
 #include "Player.h"
+#include "Stage.h"
 
 void DxInit()
 {
@@ -24,11 +25,13 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
 	DxInit();
 	Player* player = new Player();
+	Stage* stage = new Stage();
 
 	while (true)
 	{
 		ClearDrawScreen();
 		//‚±‚±‚É‚â‚è‚½‚¢ˆ—‚ð‘‚­
+		stage->Draw();
 		player->Update();
 		player->Draw();
 
@@ -41,7 +44,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			break;
 	}
 	delete player;
-
+	delete stage;
 	DxLib_End();
 	return 0;
 }

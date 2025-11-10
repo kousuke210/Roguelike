@@ -4,7 +4,7 @@
 
 Player::Player()
 	: 
-	x(1280.0f / 2.0f),  // ‰æ–Ê’†‰›‚É‰Šú”z’u
+	x(1280.0f / 2.0f),  
 	y(720.0f / 2.0f),
 	isDash(false),
 	isDodge(false),
