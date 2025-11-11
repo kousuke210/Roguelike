@@ -1,11 +1,13 @@
 #pragma once
 
-class Player {
+class Player 
+{
 public:
 	Player();
 	~Player();
 	void Update();
 	void Draw();
+	void SetPosition(float x, float y);
 private:
 	//プレイヤーの位置座標
 	float x;

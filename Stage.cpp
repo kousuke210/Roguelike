@@ -2,11 +2,11 @@
 #include "Stage.h"
 #include <random>
 #include <ctime> 
+#include <algorithm>
 
 Stage::Stage()
 	: mt(static_cast<unsigned int>(time(NULL)))
 {
-	InitializeMap();
 }
 
 Stage::~Stage()
@@ -24,7 +24,7 @@ void Stage::InitializeMap()
 	}
 }
 
-void Stage::DrawTile(int x, int y, int type)
+void Stage::DrawTile(int x, int y, int type) 
 {
 	int color = GetColor(0, 0, 0); // デフォルト色は黒
 
@@ -58,9 +58,10 @@ void Stage::DrawTile(int x, int y, int type)
 
 void Stage::GenerateMap()
 {
-	InitializeMap(); // 1. すべて壁で初期化
-	CreateRooms();   // 2. 部屋の作成
-	CreateCorridors(); // 3. 通路の作成
+	InitializeMap(); 
+	rooms.clear();   
+	CreateRooms();   
+	CreateCorridors(); 
 }
 
 void Stage::Draw()
@@ -76,26 +77,61 @@ void Stage::Draw()
 
 void Stage::CreateRooms()
 {
-	// 部屋の座標とサイズを設定
-	Room startRoom;
-	startRoom.w = 12; // 【修正】幅を大きく (10 -> 12)
-	startRoom.h = 8;  // 【修正】高さを大きく (5 -> 8)
-	startRoom.x = MAP_WIDTH / 2 - startRoom.w / 2;  // マップ中央X
-	startRoom.y = MAP_HEIGHT / 2 - startRoom.h / 2; // マップ中央Y
-	startRoom.center_x = startRoom.x + startRoom.w / 2;
-	startRoom.center_y = startRoom.y + startRoom.h / 2;
+	// 【変更点: 複数の部屋をランダムに生成するロジックに置き換え】
 
-	rooms.push_back(startRoom);
+	// 部屋のサイズと座標のランダム生成範囲を設定
+	std::uniform_int_distribution<> size_dist(MIN_ROOM_SIZE, MAX_ROOM_SIZE);
+	// マップの端から1マス内側に部屋を作るように調整
+	std::uniform_int_distribution<> x_dist(1, MAP_WIDTH - 2);
+	std::uniform_int_distribution<> y_dist(1, MAP_HEIGHT - 2);
 
-	// 部屋の内部を床にする
-	for (int y = startRoom.y; y < startRoom.y + startRoom.h; ++y)
+	for (int i = 0; i < MAX_ROOMS; ++i)
 	{
-		for (int x = startRoom.x; x < startRoom.x + startRoom.w; ++x)
+		// 新しい部屋のサイズと座標をランダムに決定
+		Room newRoom;
+		// 奇数サイズの部屋にすることで中心座標を明確にし、通路が引きやすくなる
+		newRoom.w = size_dist(mt) * 2 + 1;
+		newRoom.h = size_dist(mt) * 2 + 1;
+
+		// 部屋の左上座標を決定
+		newRoom.x = x_dist(mt);
+		newRoom.y = y_dist(mt);
+
+		// 部屋がマップの境界からはみ出ないように調整
+		if (newRoom.x + newRoom.w >= MAP_WIDTH - 1) newRoom.x = MAP_WIDTH - 1 - newRoom.w;
+		if (newRoom.y + newRoom.h >= MAP_HEIGHT - 1) newRoom.y = MAP_HEIGHT - 1 - newRoom.h;
+
+		// 中心座標を計算
+		newRoom.center_x = newRoom.x + newRoom.w / 2;
+		newRoom.center_y = newRoom.y + newRoom.h / 2;
+
+		bool intersects = false;
+		// 既存の部屋と重なっていないかチェック
+		for (const auto& existingRoom : rooms)
 		{
-			// マップの範囲内であれば床に設定
-			if (y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH)
+			// 重なり判定 (部屋間に1マス分の壁を確保するため、境界+1マスでチェック)
+			if (newRoom.x - 1 < existingRoom.x + existingRoom.w &&
+				newRoom.x + newRoom.w + 1 > existingRoom.x &&
+				newRoom.y - 1 < existingRoom.y + existingRoom.h &&
+				newRoom.y + newRoom.h + 1 > existingRoom.y)
 			{
-				mapData[y][x] = TILE_FLOOR;
+				intersects = true;
+				break;
+			}
+		}
+
+		if (!intersects)
+		{
+			// 重なっていない場合のみ部屋を確定し、リストに追加
+			rooms.push_back(newRoom);
+
+			// マップの内部を床にする (newRoom.x, newRoom.y を含む)
+			for (int y = newRoom.y; y < newRoom.y + newRoom.h; ++y)
+			{
+				for (int x = newRoom.x; x < newRoom.x + newRoom.w; ++x)
+				{
+					mapData[y][x] = TILE_FLOOR;
+				}
 			}
 		}
 	}
@@ -103,5 +139,39 @@ void Stage::CreateRooms()
 
 void Stage::CreateCorridors()
 {
+	// 【追加】部屋が2つ以上ある場合に通路を作成
+	if (rooms.size() < 2) return;
 
+	// 隣接する部屋同士を順番に繋いでいく
+	for (size_t i = 0; i < rooms.size() - 1; ++i)
+	{
+		Room& r1 = rooms[i];
+		Room& r2 = rooms[i + 1];
+
+		// 2つの部屋の中心座標（マス座標）
+		int x1 = r1.center_x;
+		int y1 = r1.center_y;
+		int x2 = r2.center_x;
+		int y2 = r2.center_y;
+
+		// 1. 水平方向(X)の通路を作成 (x1 から x2 へ移動し、Y1の行を通路にする)
+		for (int x = min(x1, x2); x <= max(x1, x2); ++x)
+		{
+			// マップの境界チェック
+			if (y1 >= 0 && y1 < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH)
+			{
+				mapData[y1][x] = TILE_FLOOR;
+			}
+		}
+
+		// 2. 垂直方向(Y)の通路を作成 (y1 から y2 へ移動し、X2の列を通路にする)
+		for (int y = min(y1, y2); y <= max(y1, y2); ++y)
+		{
+			// マップの境界チェック
+			if (y >= 0 && y < MAP_HEIGHT && x2 >= 0 && x2 < MAP_WIDTH)
+			{
+				mapData[y][x2] = TILE_FLOOR;
+			}
+		}
+	}
 }

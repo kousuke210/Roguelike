@@ -19,6 +19,22 @@ public:
 	void GenerateMap(); // ダンジョン生成処理を開始する
 	void Draw();        // マップを描画する
 
+	// 【追加】メインループから部屋の情報を取得するためのパブリックな構造体とメソッド
+	struct Room {
+		int x; // 左上のX座標（マス）
+		int y; // 左上のY座標（マス）
+		int w; // 幅（マス）
+		int h; // 高さ（マス）
+		int center_x; // 中心X座標（マス）
+		int center_y; // 中心Y座標（マス）
+	};
+
+	// 【追加】生成された部屋のリストを取得
+	const std::vector<Room>& GetRooms() const { return rooms; }
+	// 【追加】タイルサイズを取得（プレイヤー初期位置計算に必要）
+	int GetTileSize() const { return TILE_SIZE; }
+
+
 private:
 	// マップの定数定義
 	static const int TILE_SIZE = 40;       // 1マスのサイズ（ピクセル）
@@ -32,14 +48,8 @@ private:
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
 
 	// 部屋の情報を保持する構造体
-	struct Room {
-		int x; // 左上のX座標（マス）
-		int y; // 左上のY座標（マス）
-		int w; // 幅（マス）
-		int h; // 高さ（マス）
-		int center_x; // 中心X座標（マス）
-		int center_y; // 中心Y座標（マス）
-	};
+	// NOTE: 構造体定義をpublicに移動
+	// struct Room { ... };
 
 	std::vector<Room> rooms; // 生成された部屋のリスト
 

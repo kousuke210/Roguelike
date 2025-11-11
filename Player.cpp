@@ -19,6 +19,12 @@ Player::~Player()
 {
 }
 
+void Player::SetPosition(float x, float y)
+{
+	this->x = x;
+	this->y = y;
+}
+
 void Player::Move()
 {
 	float speed = isDash ? DashSpeed : moveSpeed;
