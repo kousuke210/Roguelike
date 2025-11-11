@@ -19,6 +19,9 @@ public:
 	void GenerateMap(); // ダンジョン生成処理を開始する
 	void Draw();        // マップを描画する
 
+	// 【追加】指定したマス座標のタイルタイプを取得
+	int GetTileType(int x, int y) const;
+
 	// 【追加】メインループから部屋の情報を取得するためのパブリックな構造体とメソッド
 	struct Room {
 		int x; // 左上のX座標（マス）

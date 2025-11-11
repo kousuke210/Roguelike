@@ -27,6 +27,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	Player* player = new Player();
 	Stage* stage = new Stage(); // 【追記】Stageオブジェクトを作成
 
+	// 【追加】プレイヤーにステージのポインターを渡す
+	player->SetStage(stage);
+
 	// 【追加】ダンジョン生成とプレイヤー初期位置設定
 	stage->GenerateMap();
 

@@ -1,5 +1,7 @@
 #pragma once
 
+class Stage;
+
 class Player 
 {
 public:
@@ -8,10 +10,19 @@ public:
 	void Update();
 	void Draw();
 	void SetPosition(float x, float y);
+	void SetStage(Stage* stage) { this->stage = stage; }
 private:
 	//プレイヤーの位置座標
 	float x;
 	float y;
+
+	Stage* stage;
+
+	//スタミナ回復遅延用の定数 (1.5秒 = 90フレーム)
+	static const int STAMINA_RECOVER_DELAY_FRAMES = 90;
+
+	//スタミナが最後に消費されてからの経過フレーム数を記録するカウンター
+	int staminaDelayCounter;
 
 	//状態管理
 	bool isDash; // true:ダッシュ中 false:通常状態
@@ -35,6 +46,8 @@ private:
 	const int MAX_DODGETIME = 5; // 【修正】回避の持続時間最大値 (20フレーム -> 5フレームに変更)
 
 	const float DODGE_SPEED = 15.0f; // 回避時の1フレームあたりの移動速度
+
+	bool CheckCollision(float next_x, float next_y);
 
 	void Dash();
 	void Dodge();

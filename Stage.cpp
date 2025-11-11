@@ -75,6 +75,17 @@ void Stage::Draw()
 	}
 }
 
+int Stage::GetTileType(int x, int y) const
+{
+	// マップの境界外であれば、常に「壁」と見なす
+	if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT)
+	{
+		return TILE_WALL;
+	}
+
+	return mapData[y][x];
+}
+
 void Stage::CreateRooms()
 {
 	// 【変更点: 複数の部屋をランダムに生成するロジックに置き換え】

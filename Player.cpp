@@ -1,6 +1,7 @@
 #include "DxLib.h"
 #include "Player.h"
 #include <cmath>
+#include "Stage.h"
 
 Player::Player()
 	: 
@@ -11,7 +12,8 @@ Player::Player()
 	isMoving(false),
 	Stamina(MAX_STAMINA),
 	dashCoolTime(0),
-	dodgeDuration(0)
+	dodgeDuration(0), 
+	staminaDelayCounter(STAMINA_RECOVER_DELAY_FRAMES)
 {
 }
 
@@ -23,6 +25,43 @@ void Player::SetPosition(float x, float y)
 {
 	this->x = x;
 	this->y = y;
+}
+
+// 【追加】移動先の座標に壁があるかチェックする
+bool Player::CheckCollision(float next_x, float next_y)
+{
+	if (!stage) return false; // ステージが設定されていなければ常に衝突なしとする
+
+	// プレイヤーの円の中心座標と半径
+	float radius = 20.0f; // Player::Draw() で使われている半径
+	int tileSize = stage->GetTileSize();
+
+	// プレイヤーの移動先座標が壁と重なるかどうかをチェックするための4隅の点
+	// 衝突判定をシンプルにするため、円の中心から外側に向かって4点の位置を計算します
+	float check_points[4][2] = {
+		{next_x + radius - 1.0f, next_y}, // 右端 (-1.0f は丸め誤差対策)
+		{next_x - radius + 1.0f, next_y}, // 左端
+		{next_x, next_y + radius - 1.0f}, // 下端
+		{next_x, next_y - radius + 1.0f}  // 上端
+	};
+
+	for (int i = 0; i < 4; ++i)
+	{
+		float check_x = check_points[i][0];
+		float check_y = check_points[i][1];
+
+		// ピクセル座標をマス座標に変換
+		int tile_x = (int)(check_x / tileSize);
+		int tile_y = (int)(check_y / tileSize);
+
+		// マス座標がマップの範囲内かチェックし、壁（TILE_WALL）であれば衝突
+		if (stage->GetTileType(tile_x, tile_y) == TILE_WALL)
+		{
+			return true; // 衝突あり
+		}
+	}
+
+	return false; // 衝突なし
 }
 
 void Player::Move()
@@ -51,13 +90,30 @@ void Player::Move()
 
 	// 斜め移動の速度調整
 	if (dx != 0.0f && dy != 0.0f) {
-		float diag_speed_rate = 0.7071f; 
+		float diag_speed_rate = 0.7071f;
 		dx *= diag_speed_rate;
 		dy *= diag_speed_rate;
 	}
 
-	x += dx;
-	y += dy;
+	// 【修正】衝突判定を適用しながら座標を更新
+
+	// X軸の移動チェック
+	if (dx != 0.0f)
+	{
+		if (!CheckCollision(x + dx, y))
+		{
+			x += dx;
+		}
+	}
+
+	// Y軸の移動チェック
+	if (dy != 0.0f)
+	{
+		if (!CheckCollision(x, y + dy))
+		{
+			y += dy;
+		}
+	}
 
 	// スタミナの回復
 	if (!isDash && dashCoolTime == 0 && Stamina < MAX_STAMINA) {
