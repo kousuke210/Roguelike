@@ -138,6 +138,8 @@ void Player::Dash()
 		isDash = true;
 		Stamina -= STAMINA_CONSUME_DASH;
 
+		staminaDelayCounter = 0; //ここでタイマーをリセット
+
 		if (Stamina < 0.0f)
 		{
 			Stamina = 0.0f;
@@ -165,6 +167,8 @@ void Player::Dodge()
 	{
 		dodgeDuration--;
 		isDodge = true;
+
+		staminaDelayCounter = 0; // 【追加】ここでタイマーをリセット
 
 		// 【追加】回避中の移動処理
 		float dx = 0.0f;

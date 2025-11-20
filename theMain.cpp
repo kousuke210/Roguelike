@@ -1,6 +1,6 @@
 #include "DxLib.h"
 #include "Player.h"
-#include "Stage.h" // 【追記】Stageクラスを使うためにインクルード
+#include "Stage.h"
 
 void DxInit()
 {
