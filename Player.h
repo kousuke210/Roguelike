@@ -2,54 +2,34 @@
 
 class Stage;
 
-class Player 
+class Player
 {
 public:
 	Player();
 	~Player();
-	void Update();
+	// 【変更】Updateの戻り値をboolにして、行動したらtrueを返す（ターン終了を示す）
+	bool Update();
 	void Draw();
-	void SetPosition(float x, float y);
+	// 【変更】SetPositionの引数をマス座標（int）に変更
+	void SetPosition(int map_x, int map_y);
 	void SetStage(Stage* stage) { this->stage = stage; }
+	// 【追加】マップ座標を取得できるようにする
+	int GetMapX() const { return map_x; }
+	int GetMapY() const { return map_y; }
 private:
-	//プレイヤーの位置座標
-	float x;
-	float y;
+	// 【変更】プレイヤーの位置座標をマス座標（int）に
+	int map_x;
+	int map_y;
 
 	Stage* stage;
 
-	//スタミナ回復遅延用の定数 (1.5秒 = 90フレーム)
-	static const int STAMINA_RECOVER_DELAY_FRAMES = 90;
+	// 【削除/無効化】リアルタイム移動、スタミナ、ダッシュ、回避関連の定数と変数を削除
 
-	//スタミナが最後に消費されてからの経過フレーム数を記録するカウンター
-	int staminaDelayCounter;
+	// 【変更】衝突判定をマス座標ベースに簡素化
+	bool CheckCollision(int next_map_x, int next_map_y);
 
-	//状態管理
-	bool isDash; // true:ダッシュ中 false:通常状態
-	bool isDodge; // true:回避中 false:回避中でない
-	bool isMoving; // true:移動キーが押されている false:停止
-
-	//パラメータ
-	float Stamina; // 現在のスタミナ
-	static constexpr float MAX_STAMINA = 100.0f; // スタミナの最大値
-	const float STAMINA_CONSUME_DASH = 1.0f; // 1フレームあたりのダッシュ消費スタミナ
-	const float STAMINA_CONSUME_DODGE = 30.0f; // 回避で消費するスタミナ
-	const float STAMINA_RECOVER_RATE = 0.5f; // 1フレームあたりのスタミナ回復量
-
-	//移動速度
-	const float moveSpeed = 3.0f;    // 通常の移動速度
-	const float DashSpeed = 6.0f;    // ダッシュ時の移動速度
-
-	int dashCoolTime;        // ダッシュ後のクールタイム（フレーム）
-	int dodgeDuration;       // 回避の持続時間（フレーム）
-	const int MAX_COOLTIME = 60; // ダッシュ・回避後のクールタイム最大値 (60フレーム=1秒)
-	const int MAX_DODGETIME = 5; // 【修正】回避の持続時間最大値 (20フレーム -> 5フレームに変更)
-
-	const float DODGE_SPEED = 15.0f; // 回避時の1フレームあたりの移動速度
-
-	bool CheckCollision(float next_x, float next_y);
-
-	void Dash();
-	void Dodge();
-	void Move();
+	// 【削除】リアルタイム移動/アクション関数はUpdateに統合・無効化
+	// void Dash();
+	// void Dodge();
+	// void Move();
 };

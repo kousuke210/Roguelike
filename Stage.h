@@ -40,9 +40,11 @@ public:
 
 private:
 	// マップの定数定義
-	static const int TILE_SIZE = 40;       // 1マスのサイズ（ピクセル）
-	static const int MAP_WIDTH = 32;       // マップの幅（マス） 1280 / 40 = 32
-	static const int MAP_HEIGHT = 18;      // マップの高さ（マス） 720 / 40 = 18
+private:
+	// マップの定数定義
+	static const int TILE_SIZE = 50;       // 1マスのサイズ（ピクセル）を40から50に変更
+	static const int MAP_WIDTH = 32;       // マップの幅（マス） 1600 / 50 = 32
+	static const int MAP_HEIGHT = 18;      // マップの高さ（マス） 900 / 50 = 18
 	static const int MAX_ROOMS = 10;       // 生成する部屋の最大数
 	static const int MIN_ROOM_SIZE = 3;    // 部屋の最小サイズ（マス）
 	static const int MAX_ROOM_SIZE = 8;    // 部屋の最大サイズ（マス）

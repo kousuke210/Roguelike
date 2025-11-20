@@ -4,16 +4,9 @@
 #include "Stage.h"
 
 Player::Player()
-	: 
-	x(1280.0f / 2.0f),  
-	y(720.0f / 2.0f),
-	isDash(false),
-	isDodge(false),
-	isMoving(false),
-	Stamina(MAX_STAMINA),
-	dashCoolTime(0),
-	dodgeDuration(0), 
-	staminaDelayCounter(STAMINA_RECOVER_DELAY_FRAMES)
+	:
+	map_x(0),
+	map_y(0)
 {
 }
 
@@ -21,219 +14,88 @@ Player::~Player()
 {
 }
 
-void Player::SetPosition(float x, float y)
+void Player::SetPosition(int map_x, int map_y)
 {
-	this->x = x;
-	this->y = y;
+	this->map_x = map_x;
+	this->map_y = map_y;
 }
 
-// 【追加】移動先の座標に壁があるかチェックする
-bool Player::CheckCollision(float next_x, float next_y)
+bool Player::CheckCollision(int next_map_x, int next_map_y)
 {
-	if (!stage) return false; // ステージが設定されていなければ常に衝突なしとする
+	if (!stage) return true; 
 
-	// プレイヤーの円の中心座標と半径
-	float radius = 20.0f; // Player::Draw() で使われている半径
-	int tileSize = stage->GetTileSize();
-
-	// プレイヤーの移動先座標が壁と重なるかどうかをチェックするための4隅の点
-	// 衝突判定をシンプルにするため、円の中心から外側に向かって4点の位置を計算します
-	float check_points[4][2] = {
-		{next_x + radius - 1.0f, next_y}, // 右端 (-1.0f は丸め誤差対策)
-		{next_x - radius + 1.0f, next_y}, // 左端
-		{next_x, next_y + radius - 1.0f}, // 下端
-		{next_x, next_y - radius + 1.0f}  // 上端
-	};
-
-	for (int i = 0; i < 4; ++i)
+	// 移動先のマスが壁（TILE_WALL）であれば衝突
+	if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL)
 	{
-		float check_x = check_points[i][0];
-		float check_y = check_points[i][1];
-
-		// ピクセル座標をマス座標に変換
-		int tile_x = (int)(check_x / tileSize);
-		int tile_y = (int)(check_y / tileSize);
-
-		// マス座標がマップの範囲内かチェックし、壁（TILE_WALL）であれば衝突
-		if (stage->GetTileType(tile_x, tile_y) == TILE_WALL)
-		{
-			return true; // 衝突あり
-		}
+		return true; // 衝突あり
 	}
 
 	return false; // 衝突なし
 }
 
-void Player::Move()
+bool Player::Update()
 {
-	float speed = isDash ? DashSpeed : moveSpeed;
-	float dx = 0.0f;
-	float dy = 0.0f;
-	isMoving = false;
+	int dx = 0;
+	int dy = 0;
 
-	if (CheckHitKey(KEY_INPUT_W)) // 上
-	{
-		dy -= speed; isMoving = true;
-	} 
-	if (CheckHitKey(KEY_INPUT_S)) // 下
-	{ 
-		dy += speed; isMoving = true; 
+	if (CheckHitKey(KEY_INPUT_W) == 1) {
+		dy = -1;
 	}
-	if (CheckHitKey(KEY_INPUT_A)) // 左
-	{ 
-		dx -= speed; isMoving = true; 
-	} 
-	if (CheckHitKey(KEY_INPUT_D)) // 右
-	{ 
-		dx += speed; isMoving = true; 
-	} 
-
-	// 斜め移動の速度調整
-	if (dx != 0.0f && dy != 0.0f) {
-		float diag_speed_rate = 0.7071f;
-		dx *= diag_speed_rate;
-		dy *= diag_speed_rate;
+	else if (CheckHitKey(KEY_INPUT_S) == 1) {
+		dy = 1;
 	}
 
-	// 【修正】衝突判定を適用しながら座標を更新
+	if (CheckHitKey(KEY_INPUT_W) == 1){
+		dx = -1;
+	}
+	else if (CheckHitKey(KEY_INPUT_D) == 1) {
+		dx = 1;
+	}
 
-	// X軸の移動チェック
-	if (dx != 0.0f)
-	{
-		if (!CheckCollision(x + dx, y))
-		{
-			x += dx;
+
+	if (dx != 0 && dy != 0) {
+		if (CheckHitKey(KEY_INPUT_W) || CheckHitKey(KEY_INPUT_S)) {
+			dx = 0;
+		}
+		else {
+			dy = 0;
 		}
 	}
 
-	// Y軸の移動チェック
-	if (dy != 0.0f)
+	if (dx != 0 || dy != 0)
 	{
-		if (!CheckCollision(x, y + dy))
+		int next_map_x = map_x + dx;
+		int next_map_y = map_y + dy;
+
+		// 衝突判定
+		if (!CheckCollision(next_map_x, next_map_y))
 		{
-			y += dy;
+			// 移動実行
+			map_x = next_map_x;
+			map_y = next_map_y;
 		}
+
+		return true;
 	}
 
-	// スタミナの回復
-	if (!isDash && dashCoolTime == 0 && Stamina < MAX_STAMINA) {
-		Stamina += STAMINA_RECOVER_RATE;
-		if (Stamina > MAX_STAMINA) Stamina = MAX_STAMINA;
-	}
+	return false;
 }
 
-void Player::Dash()
-{
-	// クールタイム中はダッシュ不可
-	if (dashCoolTime > 0)
-	{
-		dashCoolTime--;
-		isDash = false;
-		return;
-	}
-
-	// LShiftが押されていて、移動中、かつスタミナがあるかチェック
-	if (CheckHitKey(KEY_INPUT_LSHIFT) && isMoving && Stamina > 0.0f)
-	{
-		isDash = true;
-		Stamina -= STAMINA_CONSUME_DASH;
-
-		staminaDelayCounter = 0; //ここでタイマーをリセット
-
-		if (Stamina < 0.0f)
-		{
-			Stamina = 0.0f;
-		}
-
-		// スタミナが尽きたらクールタイム開始
-		if (Stamina <= 0.0f)
-		{
-			// スタミナが尽きた場合も、ダッシュを続けてクールタイムに移行
-			Stamina = 0.0f;
-			isDash = false; // ダッシュを強制終了
-			dashCoolTime = MAX_COOLTIME;
-		}
-	}
-	else
-	{
-		isDash = false;
-	}
-}
-
-void Player::Dodge()
-{
-	// 1. 回避の持続時間中の処理（移動を続ける）
-	if (dodgeDuration > 0)
-	{
-		dodgeDuration--;
-		isDodge = true;
-
-		staminaDelayCounter = 0; // 【追加】ここでタイマーをリセット
-
-		// 【追加】回避中の移動処理
-		float dx = 0.0f;
-		float dy = 0.0f;
-
-		// W/A/S/D キーが押されている方向を取得
-		if (CheckHitKey(KEY_INPUT_W)) dy -= 1.0f;
-		if (CheckHitKey(KEY_INPUT_S)) dy += 1.0f;
-		if (CheckHitKey(KEY_INPUT_A)) dx -= 1.0f;
-		if (CheckHitKey(KEY_INPUT_D)) dx += 1.0f;
-
-		// 移動方向が入力されていた場合
-		if (dx != 0.0f || dy != 0.0f) {
-			// 移動ベクトルを正規化
-			float length = sqrtf(dx * dx + dy * dy);
-			if (length > 0.0f) {
-				dx /= length;
-				dy /= length;
-			}
-
-			// 座標を更新
-			x += dx * DODGE_SPEED;
-			y += dy * DODGE_SPEED;
-		}
-
-		return;
-	}
-
-	isDodge = false;
-
-	if (CheckHitKey(KEY_INPUT_SPACE) == 1 && dashCoolTime == 0 && Stamina >= STAMINA_CONSUME_DODGE)
-	{
-		isDodge = true;
-		dodgeDuration = MAX_DODGETIME;
-		Stamina -= STAMINA_CONSUME_DODGE; // 回避でスタミナ消費
-
-		// 回避後のクールタイムを設定
-		dashCoolTime = MAX_COOLTIME;
-	}
-}
-
-void Player::Update()
-{
-	Dodge();
-
-	if (!isDodge)
-	{
-		Dash();
-		Move();
-	}
-}
 void Player::Draw()
 {
-	int color = GetColor(255, 255, 255); 
-	if (isDash) {
-		color = GetColor(255, 0, 0); // ダッシュ中は赤
-	}
-	else if (isDodge) {
-		color = GetColor(0, 255, 255); // 回避中はシアン
-	}
+	if (!stage) return;
 
-	DrawCircleAA(x, y, 20.0f, 64, color, TRUE);
+	int tileSize = stage->GetTileSize();
 
-	// 状態とスタミナの表示（デバッグ用）
-	DrawFormatString(10, 10, GetColor(255, 255, 255), "Stamina: %.1f / %.1f", Stamina, MAX_STAMINA);
-	DrawFormatString(10, 30, GetColor(255, 255, 255), "Dash CoolTime: %d", dashCoolTime);
-	DrawFormatString(10, 50, GetColor(255, 255, 255), "Dodge Duration: %d", dodgeDuration);
+	// マス座標からピクセル座標の中心を計算
+	float center_x = (float)(map_x * tileSize + tileSize / 2.0f);
+	float center_y = (float)(map_y * tileSize + tileSize / 2.0f);
+
+	int color = GetColor(255, 255, 255);
+
+	// DrawCircleAAの代わりにDrawCircleで描画（ローグライクではDrawCircleで十分です）
+	// タイルサイズに合わせて半径を調整（tileSize / 2 - 5）
+	DrawCircle((int)center_x, (int)center_y, tileSize / 2 - 5, color, TRUE);
+
+	DrawFormatString(10, 10, GetColor(255, 255, 255), "Map Position: (%d, %d)", map_x, map_y);
 }

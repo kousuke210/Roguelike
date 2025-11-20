@@ -7,7 +7,7 @@ void DxInit()
 	ChangeWindowMode(true);
 	SetWindowSizeChangeEnableFlag(false, false);
 	SetMainWindowText("Roguelike");
-	SetGraphMode(1280, 720, 32);
+	SetGraphMode(1600, 900, 32);
 	SetWindowSizeExtendRate(1.0);
 	SetBackgroundColor(0, 0, 0);
 
@@ -25,12 +25,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
 	DxInit();
 	Player* player = new Player();
-	Stage* stage = new Stage(); // 【追記】Stageオブジェクトを作成
+	Stage* stage = new Stage();
 
-	// 【追加】プレイヤーにステージのポインターを渡す
 	player->SetStage(stage);
 
-	// 【追加】ダンジョン生成とプレイヤー初期位置設定
 	stage->GenerateMap();
 
 	// 生成された最初の部屋の中心にプレイヤーを移動
@@ -38,20 +36,33 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	{
 		const Stage::Room& startRoom = stage->GetRooms()[0];
 
-		// マス座標 * タイルサイズ + タイルサイズの半分 でピクセル座標を計算
-		float player_x = (float)(startRoom.center_x * stage->GetTileSize() + stage->GetTileSize() / 2.0f);
-		float player_y = (float)(startRoom.center_y * stage->GetTileSize() + stage->GetTileSize() / 2.0f);
-
-		player->SetPosition(player_x, player_y);
+		// 【変更】SetPositionにマス座標を渡す
+		player->SetPosition(startRoom.center_x, startRoom.center_y);
 	}
+
+	// 【追加】ターン管理用のフラグを導入
+	bool isPlayerTurn = true;
 
 	while (true)
 	{
 		ClearDrawScreen();
-		//ここにやりたい処理を書く
-		stage->Draw(); // 【追記】マップを描画
-		player->Update();
+
+		stage->Draw();
 		player->Draw();
+
+		if (isPlayerTurn)
+		{
+			// プレイヤーの行動。Update()がtrueを返したら行動完了
+			if (player->Update())
+			{
+				isPlayerTurn = false; // プレイヤーのターン終了
+			}
+		}
+		else
+		{
+			// エネミーなどの行動フェーズ
+			//isPlayerTurn = true;
+		}
 
 		ScreenFlip();
 		WaitTimer(16);
@@ -62,7 +73,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			break;
 	}
 	delete player;
-	delete stage; // 【追記】Stageオブジェクトを解放
+	delete stage;
 	DxLib_End();
 	return 0;
 }
