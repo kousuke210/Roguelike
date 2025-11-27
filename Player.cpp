@@ -77,12 +77,18 @@ void Player::Draw()
 
 	int tileSize = stage->GetTileSize();
 
-	float center_x = (float)(map_x * tileSize + tileSize / 2.0f);
-	float center_y = (float)(map_y * tileSize + tileSize / 2.0f);
+	// 【変更点：カメラオフセットを取得】
+	int offset_x = stage->GetCameraX();
+	int offset_y = stage->GetCameraY();
+
+	// 【変更点：描画座標にオフセットを適用】
+	float center_x = (float)(map_x * tileSize + tileSize / 2.0f) - offset_x;
+	float center_y = (float)(map_y * tileSize + tileSize / 2.0f) - offset_y;
 
 	int color = GetColor(255, 255, 255);
 
 	DrawCircle((int)center_x, (int)center_y, tileSize / 2 - 5, color, TRUE);
 
+	// デバッグ表示は画面固定でオフセット不要
 	DrawFormatString(10, 10, GetColor(255, 255, 255), "Map Position: (%d, %d)", map_x, map_y);
 }

@@ -3,6 +3,11 @@
 #include <random>
 #include <ctime> 
 #include <algorithm>
+#include "Player.h" // Player::GetMapX/Yのために必要
+
+// min, max関数を使うために必要
+using std::min;
+using std::max;
 
 Stage::Stage()
 	: mt(static_cast<unsigned int>(time(NULL)))
@@ -24,7 +29,8 @@ void Stage::InitializeMap()
 	}
 }
 
-void Stage::DrawTile(int x, int y, int type) 
+// 【変更】描画オフセットを引数に追加
+void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 {
 	int color = GetColor(0, 0, 0); // デフォルト色は黒
 
@@ -35,42 +41,45 @@ void Stage::DrawTile(int x, int y, int type)
 	}
 	else if (type == TILE_FLOOR)
 	{
-		// 【最終修正】床: 非常に目立つ青色
+		// 床: 非常に目立つ青色
 		color = GetColor(0, 0, 255);
 	}
-	else // 【追加】デバッグ用: どちらでもない場合は赤で塗りつぶす
+	else // デバッグ用: どちらでもない場合は赤で塗りつぶす
 	{
 		color = GetColor(255, 0, 0);
 	}
 
-	int left = x * TILE_SIZE;
-	int top = y * TILE_SIZE;
-	int right = (x + 1) * TILE_SIZE;
-	int bottom = (y + 1) * TILE_SIZE;
+	// 【変更点：オフセットを適用】
+	int left = x * TILE_SIZE - offset_x;
+	int top = y * TILE_SIZE - offset_y;
+	int right = (x + 1) * TILE_SIZE - offset_x;
+	int bottom = (y + 1) * TILE_SIZE - offset_y;
 
 	// タイル全体を塗りつぶし
 	DrawBox(left, top, right, bottom, color, TRUE);
 
-	// 【追加】デバッグ用: マス目の境界線を黒で描画（描画が正しく行われているかの視覚化）
+	// マス目の境界線を黒で描画
 	DrawBox(left, top, right, bottom, GetColor(0, 0, 0), FALSE);
 }
 
 
 void Stage::GenerateMap()
 {
-	InitializeMap(); 
-	rooms.clear();   
-	CreateRooms();   
-	CreateCorridors(); 
+	InitializeMap();
+	rooms.clear();
+	CreateRooms();
+	CreateCorridors();
 }
 
+// 【変更】Draw関数内でカメラオフセットを取得し、DrawTileに渡す
 void Stage::Draw()
 {
 	for (int y = 0; y < MAP_HEIGHT; ++y)
 	{
 		for (int x = 0; x < MAP_WIDTH; ++x)
 		{
-			DrawTile(x, y, mapData[y][x]);
+			// 【変更点：カメラオフセットを渡す】
+			DrawTile(x, y, mapData[y][x], camera_x, camera_y);
 		}
 	}
 }
@@ -88,8 +97,6 @@ int Stage::GetTileType(int x, int y) const
 
 void Stage::CreateRooms()
 {
-	// 【変更点: 複数の部屋をランダムに生成するロジックに置き換え】
-
 	// 部屋のサイズと座標のランダム生成範囲を設定
 	std::uniform_int_distribution<> size_dist(MIN_ROOM_SIZE, MAX_ROOM_SIZE);
 	// マップの端から1マス内側に部屋を作るように調整
@@ -150,7 +157,7 @@ void Stage::CreateRooms()
 
 void Stage::CreateCorridors()
 {
-	// 【追加】部屋が2つ以上ある場合に通路を作成
+	// 部屋が2つ以上ある場合に通路を作成
 	if (rooms.size() < 2) return;
 
 	// 隣接する部屋同士を順番に繋いでいく
@@ -185,4 +192,48 @@ void Stage::CreateCorridors()
 			}
 		}
 	}
+}
+
+// =================================================================
+// 【追加】プレイヤーの現在地に基づいてカメラを更新する
+// =================================================================
+void Stage::UpdateCamera(int player_map_x, int player_map_y)
+{
+	// 画面定数 (1600x900)
+	const int SCREEN_WIDTH = 1600;
+	const int SCREEN_HEIGHT = 900;
+
+	// 画面サイズをタイル単位で計算
+	// (1600 / 50 = 32マス, 900 / 50 = 18マス)
+	const int SCREEN_TILE_W = SCREEN_WIDTH / TILE_SIZE;
+	const int SCREEN_TILE_H = SCREEN_HEIGHT / TILE_SIZE;
+
+	// 1. プレイヤーが現在いる画面エリア（スクリーン）のインデックスを計算
+	// 例: プレイヤーがX=32に移動すると、screen_index_xは0から1に変化する
+	int screen_index_x = player_map_x / SCREEN_TILE_W;
+	int screen_index_y = player_map_y / SCREEN_TILE_H;
+
+	// 2. カメラの目標マス座標（その画面エリアの左上のマス座標）を計算
+	int target_map_x = screen_index_x * SCREEN_TILE_W;
+	int target_map_y = screen_index_y * SCREEN_TILE_H;
+
+	// 3. マス座標をピクセル座標に変換
+	int target_pixel_x = target_map_x * TILE_SIZE;
+	int target_pixel_y = target_map_y * TILE_SIZE;
+
+	// マップのピクセルサイズ
+	const int MAP_PIXEL_WIDTH = MAP_WIDTH * TILE_SIZE;
+	const int MAP_PIXEL_HEIGHT = MAP_HEIGHT * TILE_SIZE;
+
+	// 4. マップの境界でカメラをクランプ
+	// カメラオフセットの最大値は (マップ全体のピクセルサイズ - 画面サイズ)
+	if (target_pixel_x > MAP_PIXEL_WIDTH - SCREEN_WIDTH) target_pixel_x = MAP_PIXEL_WIDTH - SCREEN_WIDTH;
+	if (target_pixel_x < 0) target_pixel_x = 0;
+
+	if (target_pixel_y > MAP_PIXEL_HEIGHT - SCREEN_HEIGHT) target_pixel_y = MAP_PIXEL_HEIGHT - SCREEN_HEIGHT;
+	if (target_pixel_y < 0) target_pixel_y = 0;
+
+	// 5. カメラを更新
+	camera_x = target_pixel_x;
+	camera_y = target_pixel_y;
 }

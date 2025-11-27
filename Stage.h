@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <random> // 乱数生成のために追加
+#include <random>
 
 class Player;
 
@@ -42,32 +42,44 @@ public:
 	Player* GetPlayer() const { return player; }
 	// 【追加】タイルサイズを取得（プレイヤー初期位置計算に必要）
 	int GetTileSize() const { return TILE_SIZE; }
+
+	// =================================================================
+	// 【変更点：カメラ機能の追加】
+	// =================================================================
+	// カメラ座標を更新する（プレイヤーの現在地に基づいて）
+	void UpdateCamera(int player_map_x, int player_map_y);
+	// カメラオフセット座標（ピクセル）を取得する
+	int GetCameraX() const { return camera_x; }
+	int GetCameraY() const { return camera_y; }
+
 private:
 	// マップの定数定義
-	static const int TILE_SIZE = 50;       // 1マスのサイズ（ピクセル）を40から50に変更
-	static const int MAP_WIDTH = 32;       // マップの幅（マス） 1600 / 50 = 32
-	static const int MAP_HEIGHT = 18;      // マップの高さ（マス） 900 / 50 = 18
-	static const int MAX_ROOMS = 10;       // 生成する部屋の最大数
+	static const int TILE_SIZE = 50;       // 1マスのサイズ（ピクセル）
+	static const int MAP_WIDTH = 64;       // 【変更】マップの幅（マス） 32 -> 64
+	static const int MAP_HEIGHT = 36;      // 【変更】マップの高さ（マス） 18 -> 36
+	static const int MAX_ROOMS = 20;       // 【変更】生成する部屋の最大数 10 -> 20 (最低4部屋生成される機会を増やす)
 	static const int MIN_ROOM_SIZE = 3;    // 部屋の最小サイズ（マス）
 	static const int MAX_ROOM_SIZE = 8;    // 部屋の最大サイズ（マス）
 
 	// マップデータ（[高さ][幅]）
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
 
-	// 部屋の情報を保持する構造体
-	// NOTE: 構造体定義をpublicに移動
-	// struct Room { ... };
-
 	std::vector<Room> rooms; // 生成された部屋のリスト
 
 	// 乱数生成器
 	std::mt19937 mt;
 
-	Player* player = nullptr; // 【追加】プレイヤーへのポインタ
+	Player* player = nullptr; // プレイヤーへのポインタ
+
+	// 【追加】カメラオフセット座標
+	int camera_x = 0;
+	int camera_y = 0;
 
 	// プライベートメソッド
 	void InitializeMap(); // マップをすべて壁で初期化
 	void CreateRooms();   // 部屋を生成し、マップに配置する
 	void CreateCorridors(); // 部屋同士を通路で繋ぐ
-	void DrawTile(int x, int y, int type); // 1マスを描画する
+
+	// 【変更】描画オフセットを引数に追加
+	void DrawTile(int x, int y, int type, int offset_x, int offset_y); // 1マスを描画する
 };
