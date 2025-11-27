@@ -2,6 +2,8 @@
 #include <vector>
 #include <random> // 乱数生成のために追加
 
+class Player;
+
 // マップのタイルの種類
 enum E_TILE_TYPE
 {
@@ -34,12 +36,12 @@ public:
 
 	// 【追加】生成された部屋のリストを取得
 	const std::vector<Room>& GetRooms() const { return rooms; }
+	// 【追加】プレイヤーへのポインタを設定する
+	void SetPlayer(Player* player) { this->player = player; }
+	// 【追加】プレイヤーへのポインタを取得する (Enemy::CheckCollisionで使用)
+	Player* GetPlayer() const { return player; }
 	// 【追加】タイルサイズを取得（プレイヤー初期位置計算に必要）
 	int GetTileSize() const { return TILE_SIZE; }
-
-
-private:
-	// マップの定数定義
 private:
 	// マップの定数定義
 	static const int TILE_SIZE = 50;       // 1マスのサイズ（ピクセル）を40から50に変更
@@ -60,6 +62,8 @@ private:
 
 	// 乱数生成器
 	std::mt19937 mt;
+
+	Player* player = nullptr; // 【追加】プレイヤーへのポインタ
 
 	// プライベートメソッド
 	void InitializeMap(); // マップをすべて壁で初期化

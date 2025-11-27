@@ -2,6 +2,7 @@
 #include "Player.h"
 #include <cmath>
 #include "Stage.h"
+#include "Input.h"
 
 Player::Player()
 	:
@@ -38,28 +39,17 @@ bool Player::Update()
 	int dx = 0;
 	int dy = 0;
 
-	if (CheckHitKey(KEY_INPUT_W) == 1) {
+	if (Input::IsKeyDown(KEY_INPUT_W)) {
 		dy = -1;
 	}
-	else if (CheckHitKey(KEY_INPUT_S) == 1) {
+	else if (Input::IsKeyDown(KEY_INPUT_S)) {
 		dy = 1;
 	}
-
-	if (CheckHitKey(KEY_INPUT_W) == 1){
+	else if (Input::IsKeyDown(KEY_INPUT_A)) {
 		dx = -1;
 	}
-	else if (CheckHitKey(KEY_INPUT_D) == 1) {
+	else if (Input::IsKeyDown(KEY_INPUT_D)) {
 		dx = 1;
-	}
-
-
-	if (dx != 0 && dy != 0) {
-		if (CheckHitKey(KEY_INPUT_W) || CheckHitKey(KEY_INPUT_S)) {
-			dx = 0;
-		}
-		else {
-			dy = 0;
-		}
 	}
 
 	if (dx != 0 || dy != 0)
@@ -75,10 +65,10 @@ bool Player::Update()
 			map_y = next_map_y;
 		}
 
-		return true;
+		return true; // 移動の可否に関わらず、キー入力があったらターン終了
 	}
 
-	return false;
+	return false; // キー入力なし
 }
 
 void Player::Draw()
@@ -87,14 +77,11 @@ void Player::Draw()
 
 	int tileSize = stage->GetTileSize();
 
-	// マス座標からピクセル座標の中心を計算
 	float center_x = (float)(map_x * tileSize + tileSize / 2.0f);
 	float center_y = (float)(map_y * tileSize + tileSize / 2.0f);
 
 	int color = GetColor(255, 255, 255);
 
-	// DrawCircleAAの代わりにDrawCircleで描画（ローグライクではDrawCircleで十分です）
-	// タイルサイズに合わせて半径を調整（tileSize / 2 - 5）
 	DrawCircle((int)center_x, (int)center_y, tileSize / 2 - 5, color, TRUE);
 
 	DrawFormatString(10, 10, GetColor(255, 255, 255), "Map Position: (%d, %d)", map_x, map_y);
