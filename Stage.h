@@ -43,9 +43,6 @@ public:
 	// 【追加】タイルサイズを取得（プレイヤー初期位置計算に必要）
 	int GetTileSize() const { return TILE_SIZE; }
 
-	// =================================================================
-	// 【変更点：カメラ機能の追加】
-	// =================================================================
 	// カメラ座標を更新する（プレイヤーの現在地に基づいて）
 	void UpdateCamera(int player_map_x, int player_map_y);
 	// カメラオフセット座標（ピクセル）を取得する
@@ -55,11 +52,15 @@ public:
 private:
 	// マップの定数定義
 	static const int TILE_SIZE = 50;       // 1マスのサイズ（ピクセル）
-	static const int MAP_WIDTH = 64;       // 【変更】マップの幅（マス） 32 -> 64
-	static const int MAP_HEIGHT = 36;      // 【変更】マップの高さ（マス） 18 -> 36
-	static const int MAX_ROOMS = 20;       // 【変更】生成する部屋の最大数 10 -> 20 (最低4部屋生成される機会を増やす)
+	static const int MAP_WIDTH = 64;       // マップの幅（マス） 32 -> 64
+	static const int MAP_HEIGHT = 36;      // マップの高さ（マス） 18 -> 36
+	static const int MAX_ROOMS = 20;       // 生成する部屋の最大数 10 -> 20 (最低4部屋生成される機会を増やす)
 	static const int MIN_ROOM_SIZE = 3;    // 部屋の最小サイズ（マス）
 	static const int MAX_ROOM_SIZE = 8;    // 部屋の最大サイズ（マス）
+
+	int GroundImage;
+	int WallImage;
+
 
 	// マップデータ（[高さ][幅]）
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
@@ -80,6 +81,5 @@ private:
 	void CreateRooms();   // 部屋を生成し、マップに配置する
 	void CreateCorridors(); // 部屋同士を通路で繋ぐ
 
-	// 【変更】描画オフセットを引数に追加
 	void DrawTile(int x, int y, int type, int offset_x, int offset_y); // 1マスを描画する
 };

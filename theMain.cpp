@@ -33,12 +33,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	Stage* stage = new Stage();
 
 	player->SetStage(stage);
-	// StageにPlayerへのポインタを設定 (Enemyの衝突判定に使用)
 	stage->SetPlayer(player);
 
 	stage->GenerateMap();
 
-	// 生成された最初の部屋の中心にプレイヤーとエネミーを移動
 	if (!stage->GetRooms().empty())
 	{
 		const Stage::Room& startRoom = stage->GetRooms()[0];

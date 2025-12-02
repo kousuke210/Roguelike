@@ -3,19 +3,31 @@
 #include <random>
 #include <ctime> 
 #include <algorithm>
-#include "Player.h" // Player::GetMapX/Yのために必要
+#include "Player.h"
+#include <assert.h>
 
-// min, max関数を使うために必要
 using std::min;
 using std::max;
 
 Stage::Stage()
 	: mt(static_cast<unsigned int>(time(NULL)))
 {
+	GroundImage = LoadGraph("Assets/tutidou.png");
+	assert(GroundImage > 0);
+	WallImage = LoadGraph("Assets/tutikabe1.png");
+	assert(WallImage > 0);
 }
 
 Stage::~Stage()
 {
+	if (GroundImage != -1)
+	{
+		DeleteGraph(GroundImage);
+	}
+	if (WallImage != -1)
+	{
+		DeleteGraph(WallImage);
+	}
 }
 
 void Stage::InitializeMap()
@@ -29,37 +41,32 @@ void Stage::InitializeMap()
 	}
 }
 
-// 【変更】描画オフセットを引数に追加
 void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 {
-	int color = GetColor(0, 0, 0); // デフォルト色は黒
-
-	if (type == TILE_WALL)
-	{
-		// 壁: 明るい灰色
-		color = GetColor(150, 150, 150);
-	}
-	else if (type == TILE_FLOOR)
-	{
-		// 床: 非常に目立つ青色
-		color = GetColor(0, 0, 255);
-	}
-	else // デバッグ用: どちらでもない場合は赤で塗りつぶす
-	{
-		color = GetColor(255, 0, 0);
-	}
-
-	// 【変更点：オフセットを適用】
 	int left = x * TILE_SIZE - offset_x;
 	int top = y * TILE_SIZE - offset_y;
 	int right = (x + 1) * TILE_SIZE - offset_x;
 	int bottom = (y + 1) * TILE_SIZE - offset_y;
 
-	// タイル全体を塗りつぶし
-	DrawBox(left, top, right, bottom, color, TRUE);
+	if (type == TILE_FLOOR)
+	{
+		int tile_src_x = 0;
+		int tile_src_y = 0;
+
+		DrawRectGraph(left, top, tile_src_x, tile_src_y, TILE_SIZE, TILE_SIZE, GroundImage, TRUE, FALSE);
+	}
+	else if (type == TILE_WALL)
+	{
+		DrawGraph(left, top, WallImage, TRUE);
+	}
+	else
+	{
+		int color = GetColor(0, 0, 0);
+		DrawBox(left, top, right, bottom, color, TRUE);
+	}
 
 	// マス目の境界線を黒で描画
-	DrawBox(left, top, right, bottom, GetColor(0, 0, 0), FALSE);
+	//DrawBox(left, top, right, bottom, GetColor(0, 0, 0), FALSE);
 }
 
 
@@ -194,9 +201,6 @@ void Stage::CreateCorridors()
 	}
 }
 
-// =================================================================
-// 【追加】プレイヤーの現在地に基づいてカメラを更新する
-// =================================================================
 void Stage::UpdateCamera(int player_map_x, int player_map_y)
 {
 	// 画面定数 (1600x900)
