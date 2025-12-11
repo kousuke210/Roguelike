@@ -43,6 +43,7 @@ void Stage::InitializeMap()
 
 void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 {
+	// マスのピクセル座標を計算（オフセット適用済み）
 	int left = x * TILE_SIZE - offset_x;
 	int top = y * TILE_SIZE - offset_y;
 	int right = (x + 1) * TILE_SIZE - offset_x;
@@ -50,6 +51,7 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 
 	if (type == TILE_FLOOR)
 	{
+		// 床（TILE_FLOOR）は常に画像タイルで描画
 		int tile_src_x = 0;
 		int tile_src_y = 0;
 
@@ -57,7 +59,36 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	}
 	else if (type == TILE_WALL)
 	{
-		DrawGraph(left, top, WallImage, TRUE);
+		// 【修正】壁タイルの描画判定ロジック
+
+		bool is_adjacent_to_floor = false;
+
+		// 上下左右の4方向をチェック
+		// TILE_FLOORが隣接しているか確認する
+		if (GetTileType(x, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 上
+		if (GetTileType(x, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 下
+		if (GetTileType(x - 1, y) == TILE_FLOOR) is_adjacent_to_floor = true; // 左
+		if (GetTileType(x + 1, y) == TILE_FLOOR) is_adjacent_to_floor = true; // 右
+
+		if (!is_adjacent_to_floor)
+		{
+			if (GetTileType(x - 1, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 左上
+			if (GetTileType(x + 1, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 右上
+			if (GetTileType(x - 1, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 左下
+			if (GetTileType(x + 1, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 右下
+		}
+
+
+		if (is_adjacent_to_floor)
+		{
+			// 床に隣接している壁は画像で描画（通路に面している壁、部屋の角など）
+			DrawGraph(left, top, WallImage, TRUE);
+		}
+		else
+		{
+			int color = GetColor(0, 0, 0);
+			DrawBox(left, top, right, bottom, color, TRUE);
+		}
 	}
 	else
 	{
@@ -65,10 +96,9 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 		DrawBox(left, top, right, bottom, color, TRUE);
 	}
 
-	// マス目の境界線を黒で描画
+	// マス目の境界線の描画
 	//DrawBox(left, top, right, bottom, GetColor(0, 0, 0), FALSE);
 }
-
 
 void Stage::GenerateMap()
 {
