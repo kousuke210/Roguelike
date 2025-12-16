@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "Player.h"
 #include <assert.h>
+#include <cstring> // memsetのために追加
 
 using std::min;
 using std::max;
@@ -16,6 +17,10 @@ Stage::Stage()
 	assert(GroundImage > 0);
 	WallImage = LoadGraph("Assets/tutikabe1.png");
 	assert(WallImage > 0);
+
+	// 【追加】visibleDataとexploredDataを0で初期化
+	memset(exploredData, 0, sizeof(exploredData));
+	memset(visibleData, 0, sizeof(visibleData));
 }
 
 Stage::~Stage()
@@ -41,14 +46,59 @@ void Stage::InitializeMap()
 	}
 }
 
+// 【追加】探索済みフラグをセットする関数
+void Stage::SetExplored(int x, int y)
+{
+	// マップ境界内の場合のみ探索済みフラグを立てる
+	if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT)
+	{
+		exploredData[y][x] = 1;
+	}
+}
+
+// 【追加】現在見えているマスを計算する関数 (簡易FoV: 5x5マス)
+void Stage::CalculateVisibleTiles(int player_map_x, int player_map_y)
+{
+	// 毎フレーム、visibleData をリセット
+	memset(visibleData, 0, sizeof(visibleData));
+
+	// 視界の範囲 (5x5 マス, sight_range=2)
+	const int sight_range = 2;
+
+	// プレイヤー中心の範囲を visible に設定
+	for (int dy = -sight_range; dy <= sight_range; ++dy) {
+		for (int dx = -sight_range; dx <= sight_range; ++dx) {
+			int target_x = player_map_x + dx;
+			int target_y = player_map_y + dy;
+
+			if (target_x >= 0 && target_x < MAP_WIDTH && target_y >= 0 && target_y < MAP_HEIGHT)
+			{
+				visibleData[target_y][target_x] = 1;
+			}
+		}
+	}
+}
+
+// 【追加】エンティティが現在見えているか確認するパブリックなゲッター
+bool Stage::IsTileVisible(int x, int y) const
+{
+	// マップ境界内の場合のみチェック
+	if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT)
+	{
+		return visibleData[y][x] == 1;
+	}
+	return false;
+}
+
 void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 {
-	// 【追加】ズーム率を取得
 	const float zoom_rate = ZOOM_RATE;
 	const float draw_size = TILE_SIZE * zoom_rate;
 
+	// 【追加】半透明オーバーレイ用の定数
+	const int FOG_ALPHA = 128; // 0 (透明) ～ 255 (不透明)
+
 	// マスのピクセル座標を計算（オフセット適用済み）
-	// 【修正】座標とサイズにズーム率を適用
 	int left = static_cast<int>(x * draw_size - offset_x * zoom_rate);
 	int top = static_cast<int>(y * draw_size - offset_y * zoom_rate);
 	int right = static_cast<int>((x + 1) * draw_size - offset_x * zoom_rate);
@@ -57,15 +107,37 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	int draw_width = static_cast<int>(draw_size);
 	int draw_height = static_cast<int>(draw_size);
 
+	// -----------------------------------------------------------
+	// 視界ステータス判定
+	// -----------------------------------------------------------
+	bool isVisible = IsTileVisible(x, y);
+	bool isExplored = (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) && (exploredData[y][x] == 1);
+
+	if (!isExplored)
+	{
+		// 1. 【未探索】: 真っ黒に塗りつぶして終了
+		int color = GetColor(0, 0, 0);
+		DrawBox(left, top, right, bottom, color, TRUE);
+		return;
+	}
+
 
 	if (type == TILE_FLOOR)
 	{
-		// 床（TILE_FLOOR）は GroundImage の左上 50x50 を切り出し描画
+		// 2. 【探索済み床】: 常に明るい画像を描画し、見えていない場合のみ暗くする
+
+		// 2A. 床タイル画像をフルカラーで描画
 		int tile_src_x = 0;
 		int tile_src_y = 0;
-
-		// 【修正】拡大描画
 		DrawRectGraph(left, top, tile_src_x, tile_src_y, draw_width, draw_height, GroundImage, TRUE, FALSE);
+
+		if (!isVisible)
+		{
+			// 2B. 【探索済みだが暗い床】: 画像の上に半透明の黒を重ねる
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA, FOG_ALPHA);
+			DrawBox(left, top, right, bottom, GetColor(0, 0, 0), TRUE);
+			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		}
 	}
 	else if (type == TILE_WALL)
 	{
@@ -89,12 +161,22 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 
 		if (is_adjacent_to_floor)
 		{
-			// 【修正】拡大描画: DrawExtendGraph を使用
+			// 3. 【探索済み壁】: 常に明るい画像を描画し、見えていない場合のみ暗くする
+
+			// 3A. 壁タイル画像をフルカラーで描画
 			DrawExtendGraph(left, top, right, bottom, WallImage, TRUE);
+
+			if (!isVisible)
+			{
+				// 3B. 【探索済みだが暗い壁】: 画像の上に半透明の黒を重ねる
+				SetDrawBlendMode(DX_BLENDMODE_ALPHA, FOG_ALPHA);
+				DrawBox(left, top, right, bottom, GetColor(0, 0, 0), TRUE);
+				SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+			}
 		}
 		else
 		{
-			// 真っ黒に塗りつぶす
+			// 4. 【隣接していない壁】: 真っ黒 (探索済みでも描画しない)
 			int color = GetColor(0, 0, 0);
 			DrawBox(left, top, right, bottom, color, TRUE);
 		}
@@ -107,6 +189,7 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	}
 }
 
+
 void Stage::GenerateMap()
 {
 	InitializeMap();
@@ -115,18 +198,75 @@ void Stage::GenerateMap()
 	CreateCorridors();
 }
 
-// 【変更】Draw関数内でカメラオフセットを取得し、DrawTileに渡す
 void Stage::Draw()
 {
 	for (int y = 0; y < MAP_HEIGHT; ++y)
 	{
 		for (int x = 0; x < MAP_WIDTH; ++x)
 		{
-			// 【変更点：カメラオフセットを渡す】
 			DrawTile(x, y, mapData[y][x], camera_x, camera_y);
 		}
 	}
 }
+
+void Stage::DrawOverlayMap(int screen_width, int screen_height)
+{
+	// ミニマップの設定
+	const int MAP_SCALE = 8; // 1タイルあたりのピクセルサイズ (縮小率)
+	const int MAP_DRAW_W = MAP_WIDTH * MAP_SCALE;
+	const int MAP_DRAW_H = MAP_HEIGHT * MAP_SCALE;
+
+	// マップ全体の描画開始座標 (画面中央に配置)
+	int start_x = (screen_width - MAP_DRAW_W) / 2;
+	int start_y = (screen_height - MAP_DRAW_H) / 2;
+
+	// 1. 背景を少し暗くするオーバーレイ (画面全体を半透明の黒で覆う)
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 180); // 180は透過度 (0:透明, 255:不透明)
+	DrawBox(0, 0, screen_width, screen_height, GetColor(0, 0, 0), TRUE);
+	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0); // ブレンドモードを元に戻す
+
+	// 2. ミニマップ本体の描画
+	for (int y = 0; y < MAP_HEIGHT; ++y)
+	{
+		for (int x = 0; x < MAP_WIDTH; ++x)
+		{
+			if (exploredData[y][x] == 1) // 探索済みのみ描画
+			{
+				int draw_x = start_x + x * MAP_SCALE;
+				int draw_y = start_y + y * MAP_SCALE;
+				int color = GetColor(0, 0, 0); // デフォルトは黒
+
+				if (mapData[y][x] == TILE_FLOOR)
+				{
+					// 探索済みの床/通路: 青色で表示
+					color = GetColor(50, 50, 200);
+				}
+				else if (mapData[y][x] == TILE_WALL)
+				{
+					// 探索済みの壁: 灰色で表示
+					color = GetColor(100, 100, 100);
+				}
+
+				DrawBox(draw_x, draw_y, draw_x + MAP_SCALE, draw_y + MAP_SCALE, color, TRUE);
+			}
+		}
+	}
+
+	// 3. プレイヤーの現在位置の描画
+	if (player)
+	{
+		int player_x = start_x + player->GetMapX() * MAP_SCALE;
+		int player_y = start_y + player->GetMapY() * MAP_SCALE;
+		int player_color = GetColor(255, 255, 255); // 白
+
+		// プレイヤーを少し目立つサイズで描画
+		DrawBox(player_x - 1, player_y - 1, player_x + MAP_SCALE + 1, player_y + MAP_SCALE + 1, player_color, TRUE);
+	}
+
+	// 4. デバッグ情報の表示
+	DrawFormatString(start_x, start_y - 30, GetColor(255, 255, 255), "MINI MAP (Press TAB to close)");
+}
+
 
 int Stage::GetTileType(int x, int y) const
 {
@@ -243,12 +383,12 @@ void Stage::UpdateCamera(int player_map_x, int player_map_y)
 	// 画面定数 (1600x900)
 	const int SCREEN_WIDTH = 1600;
 	const int SCREEN_HEIGHT = 900;
-	const float zoom_rate = ZOOM_RATE; // 【追加】ズーム率を取得
+	const float zoom_rate = ZOOM_RATE;
 
 	// 画面サイズをタイル単位で計算 (表示されるタイル数)
 	const int DRAW_TILE_SIZE = static_cast<int>(TILE_SIZE * zoom_rate);
-	const int SCREEN_TILE_W = SCREEN_WIDTH / DRAW_TILE_SIZE; // 1600 / 100 = 16
-	const int SCREEN_TILE_H = SCREEN_HEIGHT / DRAW_TILE_SIZE; // 900 / 100 = 9
+	const int SCREEN_TILE_W = SCREEN_WIDTH / DRAW_TILE_SIZE;
+	const int SCREEN_TILE_H = SCREEN_HEIGHT / DRAW_TILE_SIZE;
 
 	// 1. プレイヤーが現在いる画面エリア（スクリーン）のインデックスを計算
 	int screen_index_x = player_map_x / SCREEN_TILE_W;
@@ -266,13 +406,12 @@ void Stage::UpdateCamera(int player_map_x, int player_map_y)
 	const int MAP_PIXEL_WIDTH = MAP_WIDTH * TILE_SIZE;
 	const int MAP_PIXEL_HEIGHT = MAP_HEIGHT * TILE_SIZE;
 
-	// 【修正】画面サイズを TILE_SIZE=50 単位のピクセルに変換
-	const int SCREEN_WIDTH_UNZOOMED = static_cast<int>(SCREEN_WIDTH / zoom_rate); // 800
-	const int SCREEN_HEIGHT_UNZOOMED = static_cast<int>(SCREEN_HEIGHT / zoom_rate); // 450
+	// 画面サイズを TILE_SIZE=50 単位のピクセルに変換
+	const int SCREEN_WIDTH_UNZOOMED = static_cast<int>(SCREEN_WIDTH / zoom_rate);
+	const int SCREEN_HEIGHT_UNZOOMED = static_cast<int>(SCREEN_HEIGHT / zoom_rate);
 
 
 	// 4. マップの境界でカメラをクランプ
-	// カメラオフセットの最大値は (マップ全体のピクセルサイズ - 画面サイズ[非ズーム])
 	if (target_pixel_x > MAP_PIXEL_WIDTH - SCREEN_WIDTH_UNZOOMED) target_pixel_x = MAP_PIXEL_WIDTH - SCREEN_WIDTH_UNZOOMED;
 	if (target_pixel_x < 0) target_pixel_x = 0;
 
@@ -282,4 +421,16 @@ void Stage::UpdateCamera(int player_map_x, int player_map_y)
 	// 5. カメラを更新
 	camera_x = target_pixel_x;
 	camera_y = target_pixel_y;
+
+	// 【修正】現在の可視範囲を計算
+	CalculateVisibleTiles(player_map_x, player_map_y);
+
+	// 【修正】visibleなタイルすべてを explored に設定する
+	for (int y = 0; y < MAP_HEIGHT; ++y) {
+		for (int x = 0; x < MAP_WIDTH; ++x) {
+			if (visibleData[y][x] == 1) {
+				SetExplored(x, y);
+			}
+		}
+	}
 }

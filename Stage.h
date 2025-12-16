@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <random>
+#include <cstring> // memsetのために追加
 
 class Player;
 
@@ -45,12 +46,19 @@ public:
 
 	// 【追加】拡大率を取得
 	float GetZoomRate() const { return ZOOM_RATE; }
+	// 【追加】エンティティが現在見えているか確認する
+	bool IsTileVisible(int x, int y) const;
+
 
 	// カメラ座標を更新する（プレイヤーの現在地に基づいて）
 	void UpdateCamera(int player_map_x, int player_map_y);
 	// カメラオフセット座標（ピクセル）を取得する
 	int GetCameraX() const { return camera_x; }
 	int GetCameraY() const { return camera_y; }
+
+	// 【追加】マップオーバーレイを描画する関数
+	void DrawOverlayMap(int screen_width, int screen_height);
+
 
 private:
 	// マップの定数定義
@@ -67,9 +75,14 @@ private:
 	int GroundImage;
 	int WallImage;
 
-
 	// マップデータ（[高さ][幅]）
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
+
+	// 【追加】探索済みフラグ (0: 未探索, 1: 探索済み)
+	int exploredData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
+	// 【追加】現在見えているフラグ (0: 見えない, 1: 見える)
+	int visibleData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
+
 
 	std::vector<Room> rooms; // 生成された部屋のリスト
 
@@ -86,6 +99,12 @@ private:
 	void InitializeMap(); // マップをすべて壁で初期化
 	void CreateRooms();   // 部屋を生成し、マップに配置する
 	void CreateCorridors(); // 部屋同士を通路で繋ぐ
+
+	// 【追加】探索済みフラグをセットする関数
+	void SetExplored(int x, int y);
+	// 【追加】現在見えているマスを計算する関数
+	void CalculateVisibleTiles(int player_map_x, int player_map_y);
+
 
 	void DrawTile(int x, int y, int type, int offset_x, int offset_y); // 1マスを描画する
 };

@@ -23,7 +23,7 @@ void Player::SetPosition(int map_x, int map_y)
 
 bool Player::CheckCollision(int next_map_x, int next_map_y)
 {
-	if (!stage) return true; 
+	if (!stage) return true;
 
 	// 移動先のマスが壁（TILE_WALL）であれば衝突
 	if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL)
@@ -74,6 +74,13 @@ bool Player::Update()
 void Player::Draw()
 {
 	if (!stage) return;
+
+	// 【追加】プレイヤーの現在地が見えているかチェック
+	if (!stage->IsTileVisible(map_x, map_y))
+	{
+		return; // 見えていない場合は描画しない
+	}
+
 
 	int tileSize = stage->GetTileSize();
 	// 【追加】ズーム率を取得

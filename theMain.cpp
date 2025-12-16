@@ -48,44 +48,63 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		enemy->SetPosition(startRoom.center_x + 2, startRoom.center_y);
 		enemy->SetStage(stage);
 
-		// 【追加】初期配置後、一度カメラを更新してプレイヤーの初期位置に画面を合わせる
+		// 【修正】初期配置後、一度カメラを更新してプレイヤーの初期位置に画面を合わせる (FoVの初期化も兼ねる)
 		stage->UpdateCamera(player->GetMapX(), player->GetMapY());
 	}
 
 	bool isPlayerTurn = true; // ターン管理用のフラグ
+	// 【追加】マップオーバーレイ表示フラグ
+	bool isMapOverlayVisible = false;
 
 	while (true)
 	{
 		// 毎フレームのInputモジュール更新
 		Input::Update();
 
+		// 【追加】Tabキーでマップ表示をトグルする
+		if (Input::IsKeyDown(KEY_INPUT_TAB))
+		{
+			isMapOverlayVisible = !isMapOverlayVisible;
+		}
+
 		ClearDrawScreen();
 
+		// ゲーム画面の描画
 		stage->Draw();
 		player->Draw();
-		// エネミーの描画
 		enemy->Draw();
 
-		if (isPlayerTurn)
+		if (!isMapOverlayVisible) // マップオーバーレイが表示されていない場合のみゲームを進行
 		{
-			// プレイヤーの行動。Update()がtrueを返したら行動完了
-			if (player->Update())
+			if (isPlayerTurn)
 			{
-				// 【追加】プレイヤーの移動後、カメラを更新
-				stage->UpdateCamera(player->GetMapX(), player->GetMapY());
+				// プレイヤーの行動。Update()がtrueを返したら行動完了
+				if (player->Update())
+				{
+					// 【修正】プレイヤーの移動後、カメラを更新 (FoV更新も含む)
+					stage->UpdateCamera(player->GetMapX(), player->GetMapY());
 
-				isPlayerTurn = false; // プレイヤーのターン終了
+					isPlayerTurn = false; // プレイヤーのターン終了
+				}
 			}
-		}
-		else
-		{
-			// エネミーの行動フェーズ
-			// エネミーの行動。Update()がtrueを返したら行動完了
-			if (enemy->Update())
+			else
 			{
-				isPlayerTurn = true; // エネミーのターン終了、プレイヤーのターンへ
+				// エネミーの行動フェーズ
+				if (enemy->Update())
+				{
+					isPlayerTurn = true; // エネミーのターン終了、プレイヤーのターンへ
+				}
 			}
 		}
+
+		// 【追加】マップオーバーレイの描画
+		if (isMapOverlayVisible)
+		{
+			const int SCREEN_WIDTH = 1600;
+			const int SCREEN_HEIGHT = 900;
+			stage->DrawOverlayMap(SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+
 
 		ScreenFlip();
 		WaitTimer(16);

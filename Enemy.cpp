@@ -103,6 +103,12 @@ void Enemy::Draw()
 {
     if (!stage) return;
 
+    // y’Ç‰Áz“G‚ÌŒ»Ý’n‚ªŒ©‚¦‚Ä‚¢‚é‚©ƒ`ƒFƒbƒN
+    if (!stage->IsTileVisible(map_x, map_y))
+    {
+        return; // Œ©‚¦‚Ä‚¢‚È‚¢ê‡‚Í•`‰æ‚µ‚È‚¢
+    }
+
     int tileSize = stage->GetTileSize();
     // y’Ç‰ÁzƒY[ƒ€—¦‚ðŽæ“¾
     const float zoom_rate = stage->GetZoomRate();
