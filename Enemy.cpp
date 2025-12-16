@@ -104,20 +104,29 @@ void Enemy::Draw()
     if (!stage) return;
 
     int tileSize = stage->GetTileSize();
+    // 【追加】ズーム率を取得
+    const float zoom_rate = stage->GetZoomRate();
 
-    // 【変更点：カメラオフセットを取得】
+    // カメラオフセット (非ズームピクセル) を取得
     int offset_x = stage->GetCameraX();
     int offset_y = stage->GetCameraY();
 
-    // 【変更点：描画座標にオフセットを適用】
-    float center_x = (float)(map_x * tileSize + tileSize / 2.0f) - offset_x;
-    float center_y = (float)(map_y * tileSize + tileSize / 2.0f) - offset_y;
+    // 【修正】描画座標とサイズに拡大率を適用
+    float draw_size = tileSize * zoom_rate;
+    float offset_pixel_x = offset_x * zoom_rate;
+    float offset_pixel_y = offset_y * zoom_rate;
+
+    float center_x = (float)(map_x * draw_size + draw_size / 2.0f) - offset_pixel_x;
+    float center_y = (float)(map_y * draw_size + draw_size / 2.0f) - offset_pixel_y;
+
+    // 【修正】描画円のサイズも拡大
+    int draw_radius = static_cast<int>(draw_size / 2.0f - 5 * zoom_rate);
 
     // 敵は赤色で描画
     int color = GetColor(255, 0, 0);
 
     // プレイヤーと同様に円で描画
-    DrawCircle((int)center_x, (int)center_y, tileSize / 2 - 5, color, TRUE);
+    DrawCircle((int)center_x, (int)center_y, draw_radius, color, TRUE);
 
     // デバッグ表示は画面固定でオフセット不要
     DrawFormatString(10, 30, GetColor(255, 255, 255), "Enemy Position: (%d, %d)", map_x, map_y);

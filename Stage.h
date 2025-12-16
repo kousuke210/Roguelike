@@ -43,6 +43,9 @@ public:
 	// 【追加】タイルサイズを取得（プレイヤー初期位置計算に必要）
 	int GetTileSize() const { return TILE_SIZE; }
 
+	// 【追加】拡大率を取得
+	float GetZoomRate() const { return ZOOM_RATE; }
+
 	// カメラ座標を更新する（プレイヤーの現在地に基づいて）
 	void UpdateCamera(int player_map_x, int player_map_y);
 	// カメラオフセット座標（ピクセル）を取得する
@@ -58,6 +61,9 @@ private:
 	static const int MIN_ROOM_SIZE = 3;    // 部屋の最小サイズ（マス）
 	static const int MAX_ROOM_SIZE = 8;    // 部屋の最大サイズ（マス）
 
+	// 【追加】描画拡大率
+	static constexpr float ZOOM_RATE = 1.5f;
+
 	int GroundImage;
 	int WallImage;
 
@@ -72,7 +78,7 @@ private:
 
 	Player* player = nullptr; // プレイヤーへのポインタ
 
-	// 【追加】カメラオフセット座標
+	// 【追加】カメラオフセット座標 (非ズームピクセルで保持)
 	int camera_x = 0;
 	int camera_y = 0;
 

@@ -43,61 +43,68 @@ void Stage::InitializeMap()
 
 void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 {
+	// 【追加】ズーム率を取得
+	const float zoom_rate = ZOOM_RATE;
+	const float draw_size = TILE_SIZE * zoom_rate;
+
 	// マスのピクセル座標を計算（オフセット適用済み）
-	int left = x * TILE_SIZE - offset_x;
-	int top = y * TILE_SIZE - offset_y;
-	int right = (x + 1) * TILE_SIZE - offset_x;
-	int bottom = (y + 1) * TILE_SIZE - offset_y;
+	// 【修正】座標とサイズにズーム率を適用
+	int left = static_cast<int>(x * draw_size - offset_x * zoom_rate);
+	int top = static_cast<int>(y * draw_size - offset_y * zoom_rate);
+	int right = static_cast<int>((x + 1) * draw_size - offset_x * zoom_rate);
+	int bottom = static_cast<int>((y + 1) * draw_size - offset_y * zoom_rate);
+
+	int draw_width = static_cast<int>(draw_size);
+	int draw_height = static_cast<int>(draw_size);
+
 
 	if (type == TILE_FLOOR)
 	{
-		// 床（TILE_FLOOR）は常に画像タイルで描画
+		// 床（TILE_FLOOR）は GroundImage の左上 50x50 を切り出し描画
 		int tile_src_x = 0;
 		int tile_src_y = 0;
 
-		DrawRectGraph(left, top, tile_src_x, tile_src_y, TILE_SIZE, TILE_SIZE, GroundImage, TRUE, FALSE);
+		// 【修正】拡大描画
+		DrawRectGraph(left, top, tile_src_x, tile_src_y, draw_width, draw_height, GroundImage, TRUE, FALSE);
 	}
 	else if (type == TILE_WALL)
 	{
-		// 【修正】壁タイルの描画判定ロジック
-
+		// 壁タイルの描画判定ロジック
 		bool is_adjacent_to_floor = false;
 
-		// 上下左右の4方向をチェック
-		// TILE_FLOORが隣接しているか確認する
-		if (GetTileType(x, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 上
-		if (GetTileType(x, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 下
-		if (GetTileType(x - 1, y) == TILE_FLOOR) is_adjacent_to_floor = true; // 左
-		if (GetTileType(x + 1, y) == TILE_FLOOR) is_adjacent_to_floor = true; // 右
+		// 上下左右と斜め方向のチェック
+		if (GetTileType(x, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true;
+		if (GetTileType(x, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true;
+		if (GetTileType(x - 1, y) == TILE_FLOOR) is_adjacent_to_floor = true;
+		if (GetTileType(x + 1, y) == TILE_FLOOR) is_adjacent_to_floor = true;
 
 		if (!is_adjacent_to_floor)
 		{
-			if (GetTileType(x - 1, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 左上
-			if (GetTileType(x + 1, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 右上
-			if (GetTileType(x - 1, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 左下
-			if (GetTileType(x + 1, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true; // 右下
+			if (GetTileType(x - 1, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true;
+			if (GetTileType(x + 1, y - 1) == TILE_FLOOR) is_adjacent_to_floor = true;
+			if (GetTileType(x - 1, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true;
+			if (GetTileType(x + 1, y + 1) == TILE_FLOOR) is_adjacent_to_floor = true;
 		}
 
 
 		if (is_adjacent_to_floor)
 		{
-			// 床に隣接している壁は画像で描画（通路に面している壁、部屋の角など）
-			DrawGraph(left, top, WallImage, TRUE);
+			// 【修正】拡大描画: DrawExtendGraph を使用
+			DrawExtendGraph(left, top, right, bottom, WallImage, TRUE);
 		}
 		else
 		{
+			// 真っ黒に塗りつぶす
 			int color = GetColor(0, 0, 0);
 			DrawBox(left, top, right, bottom, color, TRUE);
 		}
 	}
 	else
 	{
+		// その他のタイルは真っ黒に塗りつぶす
 		int color = GetColor(0, 0, 0);
 		DrawBox(left, top, right, bottom, color, TRUE);
 	}
-
-	// マス目の境界線の描画
-	//DrawBox(left, top, right, bottom, GetColor(0, 0, 0), FALSE);
 }
 
 void Stage::GenerateMap()
@@ -236,14 +243,14 @@ void Stage::UpdateCamera(int player_map_x, int player_map_y)
 	// 画面定数 (1600x900)
 	const int SCREEN_WIDTH = 1600;
 	const int SCREEN_HEIGHT = 900;
+	const float zoom_rate = ZOOM_RATE; // 【追加】ズーム率を取得
 
-	// 画面サイズをタイル単位で計算
-	// (1600 / 50 = 32マス, 900 / 50 = 18マス)
-	const int SCREEN_TILE_W = SCREEN_WIDTH / TILE_SIZE;
-	const int SCREEN_TILE_H = SCREEN_HEIGHT / TILE_SIZE;
+	// 画面サイズをタイル単位で計算 (表示されるタイル数)
+	const int DRAW_TILE_SIZE = static_cast<int>(TILE_SIZE * zoom_rate);
+	const int SCREEN_TILE_W = SCREEN_WIDTH / DRAW_TILE_SIZE; // 1600 / 100 = 16
+	const int SCREEN_TILE_H = SCREEN_HEIGHT / DRAW_TILE_SIZE; // 900 / 100 = 9
 
 	// 1. プレイヤーが現在いる画面エリア（スクリーン）のインデックスを計算
-	// 例: プレイヤーがX=32に移動すると、screen_index_xは0から1に変化する
 	int screen_index_x = player_map_x / SCREEN_TILE_W;
 	int screen_index_y = player_map_y / SCREEN_TILE_H;
 
@@ -251,20 +258,25 @@ void Stage::UpdateCamera(int player_map_x, int player_map_y)
 	int target_map_x = screen_index_x * SCREEN_TILE_W;
 	int target_map_y = screen_index_y * SCREEN_TILE_H;
 
-	// 3. マス座標をピクセル座標に変換
+	// 3. マス座標をピクセル座標に変換 (カメラオフセットは TILE_SIZE=50 単位で保持)
 	int target_pixel_x = target_map_x * TILE_SIZE;
 	int target_pixel_y = target_map_y * TILE_SIZE;
 
-	// マップのピクセルサイズ
+	// マップのピクセルサイズ (TILE_SIZE=50 単位)
 	const int MAP_PIXEL_WIDTH = MAP_WIDTH * TILE_SIZE;
 	const int MAP_PIXEL_HEIGHT = MAP_HEIGHT * TILE_SIZE;
 
+	// 【修正】画面サイズを TILE_SIZE=50 単位のピクセルに変換
+	const int SCREEN_WIDTH_UNZOOMED = static_cast<int>(SCREEN_WIDTH / zoom_rate); // 800
+	const int SCREEN_HEIGHT_UNZOOMED = static_cast<int>(SCREEN_HEIGHT / zoom_rate); // 450
+
+
 	// 4. マップの境界でカメラをクランプ
-	// カメラオフセットの最大値は (マップ全体のピクセルサイズ - 画面サイズ)
-	if (target_pixel_x > MAP_PIXEL_WIDTH - SCREEN_WIDTH) target_pixel_x = MAP_PIXEL_WIDTH - SCREEN_WIDTH;
+	// カメラオフセットの最大値は (マップ全体のピクセルサイズ - 画面サイズ[非ズーム])
+	if (target_pixel_x > MAP_PIXEL_WIDTH - SCREEN_WIDTH_UNZOOMED) target_pixel_x = MAP_PIXEL_WIDTH - SCREEN_WIDTH_UNZOOMED;
 	if (target_pixel_x < 0) target_pixel_x = 0;
 
-	if (target_pixel_y > MAP_PIXEL_HEIGHT - SCREEN_HEIGHT) target_pixel_y = MAP_PIXEL_HEIGHT - SCREEN_HEIGHT;
+	if (target_pixel_y > MAP_PIXEL_HEIGHT - SCREEN_HEIGHT_UNZOOMED) target_pixel_y = MAP_PIXEL_HEIGHT - SCREEN_HEIGHT_UNZOOMED;
 	if (target_pixel_y < 0) target_pixel_y = 0;
 
 	// 5. カメラを更新
