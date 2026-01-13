@@ -34,7 +34,8 @@ bool Enemy::CheckCollision(int next_map_x, int next_map_y)
     }
 
     // 【追加】プレイヤーとの衝突判定
-    if (stage->GetPlayer() != nullptr) {
+    if (stage->GetPlayer() != nullptr) 
+    {
         if (next_map_x == stage->GetPlayer()->GetMapX() && next_map_y == stage->GetPlayer()->GetMapY()) {
             return true; // プレイヤーがいるマスへは移動しない（衝突あり）
         }
@@ -52,7 +53,8 @@ bool Enemy::Update()
 
     // 移動方向の配列 {dx, dy} (停止、上下左右の5方向)
     const int num_directions = 5;
-    const int dir_coords[num_directions][2] = {
+    const int dir_coords[num_directions][2] = 
+    {
         {0, 0}, // 停止
         {0, -1}, // 上
         {0, 1},  // 下
@@ -99,41 +101,12 @@ bool Enemy::Update()
     return acted; // 行動を実行したかどうかを返す
 }
 
-void Enemy::Draw()
+void Enemy::Draw() 
 {
-    if (!stage) return;
-
-    // 【追加】敵の現在地が見えているかチェック
-    if (!stage->IsTileVisible(map_x, map_y))
-    {
-        return; // 見えていない場合は描画しない
-    }
-
-    int tileSize = stage->GetTileSize();
-    // 【追加】ズーム率を取得
-    const float zoom_rate = stage->GetZoomRate();
-
-    // カメラオフセット (非ズームピクセル) を取得
-    int offset_x = stage->GetCameraX();
-    int offset_y = stage->GetCameraY();
-
-    // 【修正】描画座標とサイズに拡大率を適用
-    float draw_size = tileSize * zoom_rate;
-    float offset_pixel_x = offset_x * zoom_rate;
-    float offset_pixel_y = offset_y * zoom_rate;
-
-    float center_x = (float)(map_x * draw_size + draw_size / 2.0f) - offset_pixel_x;
-    float center_y = (float)(map_y * draw_size + draw_size / 2.0f) - offset_pixel_y;
-
-    // 【修正】描画円のサイズも拡大
-    int draw_radius = static_cast<int>(draw_size / 2.0f - 5 * zoom_rate);
-
-    // 敵は赤色で描画
-    int color = GetColor(255, 0, 0);
-
-    // プレイヤーと同様に円で描画
-    DrawCircle((int)center_x, (int)center_y, draw_radius, color, TRUE);
-
-    // デバッグ表示は画面固定でオフセット不要
-    DrawFormatString(10, 30, GetColor(255, 255, 255), "Enemy Position: (%d, %d)", map_x, map_y);
+    if (!stage || !stage->IsTileVisible(map_x, map_y)) return;
+    const float z = stage->GetZoomRate();
+    float ds = stage->GetTileSize() * z;
+    float cx = (map_x * ds + ds / 2.0f) - stage->GetCameraX() * z;
+    float cy = (map_y * ds + ds / 2.0f) - stage->GetCameraY() * z;
+    DrawCircle((int)cx, (int)cy, (int)(ds / 2.0f - 5 * z), GetColor(255, 0, 0), TRUE);
 }

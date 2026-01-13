@@ -39,16 +39,20 @@ bool Player::Update()
 	int dx = 0;
 	int dy = 0;
 
-	if (Input::IsKeyDown(KEY_INPUT_W)) {
+	if (Input::IsKeyDown(KEY_INPUT_W)) 
+	{
 		dy = -1;
 	}
-	else if (Input::IsKeyDown(KEY_INPUT_S)) {
+	else if (Input::IsKeyDown(KEY_INPUT_S)) 
+	{
 		dy = 1;
 	}
-	else if (Input::IsKeyDown(KEY_INPUT_A)) {
+	else if (Input::IsKeyDown(KEY_INPUT_A)) 
+	{
 		dx = -1;
 	}
-	else if (Input::IsKeyDown(KEY_INPUT_D)) {
+	else if (Input::IsKeyDown(KEY_INPUT_D)) 
+	{
 		dx = 1;
 	}
 
@@ -65,46 +69,18 @@ bool Player::Update()
 			map_y = next_map_y;
 		}
 
-		return true; // 移動の可否に関わらず、キー入力があったらターン終了
+		return true; // キー入力があったらターン終了
 	}
 
 	return false; // キー入力なし
 }
 
-void Player::Draw()
+void Player::Draw() 
 {
-	if (!stage) return;
-
-	// 【追加】プレイヤーの現在地が見えているかチェック
-	if (!stage->IsTileVisible(map_x, map_y))
-	{
-		return; // 見えていない場合は描画しない
-	}
-
-
-	int tileSize = stage->GetTileSize();
-	// 【追加】ズーム率を取得
-	const float zoom_rate = stage->GetZoomRate();
-
-	// カメラオフセット (非ズームピクセル) を取得
-	int offset_x = stage->GetCameraX();
-	int offset_y = stage->GetCameraY();
-
-	// 【修正】描画座標とサイズに拡大率を適用
-	float draw_size = tileSize * zoom_rate;
-	float offset_pixel_x = offset_x * zoom_rate;
-	float offset_pixel_y = offset_y * zoom_rate;
-
-	float center_x = (float)(map_x * draw_size + draw_size / 2.0f) - offset_pixel_x;
-	float center_y = (float)(map_y * draw_size + draw_size / 2.0f) - offset_pixel_y;
-
-	// 【修正】描画円のサイズも拡大
-	int draw_radius = static_cast<int>(draw_size / 2.0f - 5 * zoom_rate);
-
-	int color = GetColor(255, 255, 255);
-
-	DrawCircle((int)center_x, (int)center_y, draw_radius, color, TRUE);
-
-	// デバッグ表示は画面固定でオフセット不要
-	DrawFormatString(10, 10, GetColor(255, 255, 255), "Map Position: (%d, %d)", map_x, map_y);
+	if (!stage || !stage->IsTileVisible(map_x, map_y)) return;
+	const float z = stage->GetZoomRate();
+	float ds = stage->GetTileSize() * z;
+	float cx = (map_x * ds + ds / 2.0f) - stage->GetCameraX() * z;
+	float cy = (map_y * ds + ds / 2.0f) - stage->GetCameraY() * z;
+	DrawCircle((int)cx, (int)cy, (int)(ds / 2.0f - 5 * z), GetColor(255, 255, 255), TRUE);
 }

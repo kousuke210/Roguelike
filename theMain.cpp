@@ -4,121 +4,67 @@
 #include "Enemy.h"
 #include "Input.h"
 
-void DxInit()
+void DxInit() 
 {
 	ChangeWindowMode(true);
-	SetWindowSizeChangeEnableFlag(false, false);
-	SetMainWindowText("Roguelike");
-	SetGraphMode(1600, 900, 32);
-	SetWindowSizeExtendRate(1.0);
+	SetGraphMode(1400, 700, 32);
 	SetBackgroundColor(0, 0, 0);
-
-	// ＤＸライブラリ初期化処理
-	if (DxLib_Init() == -1)
-	{
-		DxLib_End();
-	}
-
+	if (DxLib_Init() == -1) DxLib_End();
 	SetDrawScreen(DX_SCREEN_BACK);
-
 	Input::Initialize(GetMainWindowHandle());
 }
 
-
-int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
+int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ int n) 
 {
 	DxInit();
-	Player* player = new Player();
-	Enemy* enemy = new Enemy();
+	Player* player = new Player(); 
+	Enemy* enemy = new Enemy(); 
 	Stage* stage = new Stage();
-
-	player->SetStage(stage);
-	stage->SetPlayer(player);
-
+	player->SetStage(stage); 
+	stage->SetPlayer(player); 
 	stage->GenerateMap();
 
-	if (!stage->GetRooms().empty())
+	if (!stage->GetRooms().empty()) 
 	{
-		const Stage::Room& startRoom = stage->GetRooms()[0];
-
-		// SetPositionにマス座標を渡す
-		player->SetPosition(startRoom.center_x, startRoom.center_y);
-
-		// エネミーをプレイヤーと同じ部屋の少しずれた位置に配置
-		enemy->SetPosition(startRoom.center_x + 2, startRoom.center_y);
-		enemy->SetStage(stage);
-
-		// 【修正】初期配置後、一度カメラを更新してプレイヤーの初期位置に画面を合わせる (FoVの初期化も兼ねる)
+		auto& r = stage->GetRooms()[0];
+		player->SetPosition(r.center_x, r.center_y);
+		enemy->SetPosition(r.center_x + 2, r.center_y); enemy->SetStage(stage);
 		stage->UpdateCamera(player->GetMapX(), player->GetMapY());
 	}
 
-	bool isPlayerTurn = true; // ターン管理用のフラグ
-	// 【追加】マップオーバーレイ表示フラグ
+	bool isPlayerTurn = true;
 	bool isMapOverlayVisible = false;
 
-	while (true)
+	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0) 
 	{
-		// 毎フレームのInputモジュール更新
 		Input::Update();
-
-		// 【追加】Tabキーでマップ表示をトグルする
-		if (Input::IsKeyDown(KEY_INPUT_TAB))
-		{
-			isMapOverlayVisible = !isMapOverlayVisible;
-		}
+		if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
 
 		ClearDrawScreen();
+		stage->Draw(); player->Draw(); enemy->Draw();
 
-		// ゲーム画面の描画
-		stage->Draw();
-		player->Draw();
-		enemy->Draw();
-
-		if (!isMapOverlayVisible) // マップオーバーレイが表示されていない場合のみゲームを進行
+		if (!isMapOverlayVisible) 
 		{
-			if (isPlayerTurn)
-			{
-				// プレイヤーの行動。Update()がtrueを返したら行動完了
-				if (player->Update())
-				{
-					// 【修正】プレイヤーの移動後、カメラを更新 (FoV更新も含む)
-					stage->UpdateCamera(player->GetMapX(), player->GetMapY());
-
-					isPlayerTurn = false; // プレイヤーのターン終了
+			if (isPlayerTurn) 
+			{ 
+				if (player->Update()) 
+				{ 
+					stage->UpdateCamera(player->GetMapX(), player->GetMapY()); isPlayerTurn = false; 
 				}
 			}
-			else
-			{
-				// エネミーの行動フェーズ
-				if (enemy->Update())
-				{
-					isPlayerTurn = true; // エネミーのターン終了、プレイヤーのターンへ
-				}
+			else 
+			{ 
+				if (enemy->Update()) isPlayerTurn = true;
 			}
 		}
-
-		// 【追加】マップオーバーレイの描画
-		if (isMapOverlayVisible)
+		else 
 		{
-			const int SCREEN_WIDTH = 1600;
-			const int SCREEN_HEIGHT = 900;
-			stage->DrawOverlayMap(SCREEN_WIDTH, SCREEN_HEIGHT);
+			stage->DrawOverlayMap(1400, 700);
 		}
-
 
 		ScreenFlip();
 		WaitTimer(16);
-
-		if (ProcessMessage() == -1)
-			break;
-		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1)
-			break;
 	}
-	delete player;
-	delete enemy;
-	delete stage;
-	Input::Release();
-
-	DxLib_End();
-	return 0;
+	delete player; delete enemy; delete stage;
+	Input::Release(); DxLib_End(); return 0;
 }
