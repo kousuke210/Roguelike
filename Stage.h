@@ -2,8 +2,10 @@
 #include <vector>
 #include <random>
 #include <cstring>
+#include "Item.h"
 
 class Player;
+class ItemManager;
 
 // マップのタイルの種類
 enum E_TILE_TYPE
@@ -12,6 +14,8 @@ enum E_TILE_TYPE
 	TILE_FLOOR, // 床（通路・部屋）
 	TILE_MAX
 };
+
+class ItemManager;
 
 class Stage
 {
@@ -48,6 +52,8 @@ public:
 	// マップオーバーレイを描画する関数
 	void DrawOverlayMap(int screen_width, int screen_height);
 
+	class ItemManager* GetItemManager() { return itemManager; }
+
 private:
 	static const int TILE_SIZE = 50;
 	static const int MAP_WIDTH = 64;
@@ -79,4 +85,6 @@ private:
 	void SetExplored(int x, int y);
 	void CalculateVisibleTiles(int player_map_x, int player_map_y);
 	void DrawTile(int x, int y, int type, int offset_x, int offset_y);
+
+	class ItemManager* itemManager = nullptr;
 };

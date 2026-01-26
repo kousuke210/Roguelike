@@ -16,12 +16,24 @@ Stage::Stage() : mt(static_cast<unsigned int>(time(NULL)))
 	assert(GroundImage > 0 && WallImage > 0);
 	memset(exploredData, 0, sizeof(exploredData));
 	memset(visibleData, 0, sizeof(visibleData));
+	itemManager = new ItemManager();
 }
 
 Stage::~Stage() 
 {
-	if (GroundImage != -1) DeleteGraph(GroundImage);
-	if (WallImage != -1) DeleteGraph(WallImage);
+	if (GroundImage != -1)
+	{
+		DeleteGraph(GroundImage);
+	}
+	if (WallImage != -1)
+	{
+		DeleteGraph(WallImage);
+	}
+	if (itemManager != nullptr)
+	{
+		delete itemManager;
+		itemManager = nullptr;
+	}
 }
 
 void Stage::InitializeMap() 
@@ -161,8 +173,24 @@ void Stage::DrawOverlayMap(int sw, int sh)
 	if (player) DrawBox(sx + player->GetMapX() * SCALE - 1, sy + player->GetMapY() * SCALE - 1, sx + (player->GetMapX() + 1) * SCALE + 1, sy + (player->GetMapY() + 1) * SCALE + 1, GetColor(255, 255, 255), TRUE);
 }
 
-void Stage::GenerateMap() { InitializeMap(); rooms.clear(); CreateRooms(); CreateCorridors(); }
-void Stage::Draw() { for (int y = 0; y < MAP_HEIGHT; ++y) for (int x = 0; x < MAP_WIDTH; ++x) DrawTile(x, y, mapData[y][x], camera_x, camera_y); }
+void Stage::GenerateMap() 
+{ 
+	InitializeMap(); 
+	rooms.clear(); 
+	CreateRooms(); 
+	CreateCorridors(); 
+	itemManager->SpawnItems(rooms);
+}
+
+void Stage::Draw() {
+	// 1. 地面の描画
+	for (int y = 0; y < MAP_HEIGHT; ++y)
+		for (int x = 0; x < MAP_WIDTH; ++x) DrawTile(x, y, mapData[y][x], camera_x, camera_y);
+
+	// 2. アイテムの描画 (地面の上に重ねる)
+	itemManager->Draw(this);
+}
+
 int Stage::GetTileType(int x, int y) const { if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return TILE_WALL; return mapData[y][x]; }
 
 void Stage::CreateRooms() 
