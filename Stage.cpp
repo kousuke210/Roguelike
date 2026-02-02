@@ -67,11 +67,14 @@ bool Stage::IsTileVisible(int x, int y) const
 	return false;
 }
 
-void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y) 
+void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 {
 	const float z = ZOOM_RATE;
 	const float ds = TILE_SIZE * z;
-	const int FOG_ALPHA = 128; // ˆÃ‚³‚Ì“x‡‚¢ (0-255)
+
+	// y’²®ƒ|ƒCƒ“ƒgz
+	const int FOG_ALPHA = 140;   // Ž‹ŠEŠOiˆê“x’Ê‚Á‚½êŠj‚ÌˆÃ‚³
+	const int UNEXPLORED_ALPHA = 210; // –¢’TõƒGƒŠƒAiˆê“x‚às‚Á‚Ä‚¢‚È‚¢êŠj‚ÌˆÃ‚³
 
 	int l = (int)(x * ds - offset_x * z);
 	int t = (int)(y * ds - offset_y * z);
@@ -81,50 +84,47 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	bool isVis = IsTileVisible(x, y);
 	bool isExp = (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) && (exploredData[y][x] == 1);
 
-	if (!isExp) 
-	{ // –¢’Tõ‚Í^‚Á•
-		DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-		return;
-	}
+	// --- •`‰æˆ— ---
 
-	if (type == TILE_FLOOR) 
+	if (type == TILE_FLOOR)
 	{
+		// °‚ð•`‰æ
 		DrawRectGraph(l, t, 0, 0, (int)ds, (int)ds, GroundImage, TRUE, FALSE);
-		if (!isVis) 
-		{ // Ž‹ŠEŠO‚È‚ç”¼“§–¾‚Ì•‚ðd‚Ë‚é
-			SetDrawBlendMode(DX_BLENDMODE_ALPHA, FOG_ALPHA);
-			DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-		}
 	}
-	else if (type == TILE_WALL) 
+	else if (type == TILE_WALL)
 	{
+		// •Çi—×Ú”»’è‚ ‚èj‚ð•`‰æ
 		bool adj = false;
 		if (GetTileType(x, y - 1) == TILE_FLOOR || GetTileType(x, y + 1) == TILE_FLOOR ||
 			GetTileType(x - 1, y) == TILE_FLOOR || GetTileType(x + 1, y) == TILE_FLOOR ||
 			GetTileType(x - 1, y - 1) == TILE_FLOOR || GetTileType(x + 1, y - 1) == TILE_FLOOR ||
 			GetTileType(x - 1, y + 1) == TILE_FLOOR || GetTileType(x + 1, y + 1) == TILE_FLOOR) adj = true;
 
-		if (adj) 
-		{
-			DrawExtendGraph(l, t, r, b, WallImage, TRUE);
-			if (!isVis) 
-			{
-				SetDrawBlendMode(DX_BLENDMODE_ALPHA, FOG_ALPHA);
-				DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-				SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-			}
-		}
-		else 
-		{
-			DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-		}
+		if (adj) DrawExtendGraph(l, t, r, b, WallImage, TRUE);
+		else DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
+	}
+
+	if (isVis)
+	{
+	}
+	else if (isExp)
+	{
+		// ’TõÏ‚Ý‚¾‚ªŽ‹ŠEŠOF’†‚­‚ç‚¢‚ÌˆÃ‚³‚ðd‚Ë‚é
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, FOG_ALPHA);
+		DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
+	else
+	{
+		// –¢’TõF‚©‚È‚èˆÃ‚¢•‚ðd‚Ë‚éi’nŒ`‚Í‚¤‚Á‚·‚çŒ©‚¦‚éj
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, UNEXPLORED_ALPHA);
+		DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 	}
 }
-
 void Stage::UpdateCamera(int px, int py) 
 {
-	// yC³zV‚µ‚¢‰æ–ÊƒTƒCƒY (1400x700)
+
 	const int SW = 1400;
 	const int SH = 700;
 	const int DTS = (int)(TILE_SIZE * ZOOM_RATE);
@@ -136,7 +136,7 @@ void Stage::UpdateCamera(int px, int py)
 
 	int MWP = MAP_WIDTH * TILE_SIZE;
 	int MHP = MAP_HEIGHT * TILE_SIZE;
-	// yC³zŠg‘å—¦‚ðl—¶‚µ‚½”ñƒY[ƒ€Žž‚Ì‰æ–Ê•
+
 	int SWU = (int)(SW / ZOOM_RATE);
 	int SHU = (int)(SH / ZOOM_RATE);
 

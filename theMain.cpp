@@ -74,6 +74,10 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         ScreenFlip();
         WaitTimer(16);
     }
-	delete player; delete enemy; delete stage;
-	Input::Release(); DxLib_End(); return 0;
+	delete player;
+    delete enemy; 
+    delete stage;
+	Input::Release();
+    DxLib_End(); 
+    return 0;
 }
