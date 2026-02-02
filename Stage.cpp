@@ -173,13 +173,13 @@ void Stage::DrawOverlayMap(int sw, int sh)
 	if (player) DrawBox(sx + player->GetMapX() * SCALE - 1, sy + player->GetMapY() * SCALE - 1, sx + (player->GetMapX() + 1) * SCALE + 1, sy + (player->GetMapY() + 1) * SCALE + 1, GetColor(255, 255, 255), TRUE);
 }
 
-void Stage::GenerateMap() 
-{ 
-	InitializeMap(); 
-	rooms.clear(); 
-	CreateRooms(); 
-	CreateCorridors(); 
-	itemManager->SpawnItems(rooms);
+void Stage::GenerateMap()
+{
+	InitializeMap();
+	rooms.clear();
+	CreateRooms();
+	CreateCorridors();
+	itemManager->SpawnItems(this);
 }
 
 void Stage::Draw() {

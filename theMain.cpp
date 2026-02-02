@@ -35,36 +35,45 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
 	bool isPlayerTurn = true;
 	bool isMapOverlayVisible = false;
 
-	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0) 
-	{
-		Input::Update();
-		if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
+    while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
+    {
+        Input::Update();
+        if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
 
-		ClearDrawScreen();
-		stage->Draw(); player->Draw(); enemy->Draw();
+        ClearDrawScreen();
 
-		if (!isMapOverlayVisible) 
-		{
-			if (isPlayerTurn) 
-			{ 
-				if (player->Update()) 
-				{ 
-					stage->UpdateCamera(player->GetMapX(), player->GetMapY()); isPlayerTurn = false; 
-				}
-			}
-			else 
-			{ 
-				if (enemy->Update()) isPlayerTurn = true;
-			}
-		}
-		else 
-		{
-			stage->DrawOverlayMap(1400, 700);
-		}
+        stage->Draw();
+        player->Draw();
+        enemy->Draw();
 
-		ScreenFlip();
-		WaitTimer(16);
-	}
+        if (!isMapOverlayVisible)
+        {
+            if (isPlayerTurn)
+            {
+                if (player->Update())
+                {
+                    stage->UpdateCamera(player->GetMapX(), player->GetMapY());
+                    // 足元のアイテムを拾い、効果を適用
+                    stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
+                    isPlayerTurn = false;
+                }
+            }
+            else
+            {
+                if (enemy->Update()) isPlayerTurn = true;
+            }
+        }
+        else
+        {
+            stage->DrawOverlayMap(1400, 700);
+        }
+
+        DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
+        DrawFormatString(500, 10, GetColor(255, 255, 255), "ATK %d", player->GetAttack());
+
+        ScreenFlip();
+        WaitTimer(16);
+    }
 	delete player; delete enemy; delete stage;
 	Input::Release(); DxLib_End(); return 0;
 }

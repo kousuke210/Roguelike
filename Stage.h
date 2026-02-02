@@ -10,12 +10,10 @@ class ItemManager;
 // マップのタイルの種類
 enum E_TILE_TYPE
 {
-	TILE_WALL,  // 壁
-	TILE_FLOOR, // 床（通路・部屋）
+	TILE_WALL,
+	TILE_FLOOR,
 	TILE_MAX
 };
-
-class ItemManager;
 
 class Stage
 {
@@ -23,10 +21,9 @@ public:
 	Stage();
 	~Stage();
 
-	void GenerateMap(); // ダンジョン生成処理を開始する
-	void Draw();        // マップを描画する
+	void GenerateMap();
+	void Draw();
 
-	// 指定したマス座標のタイルタイプを取得
 	int GetTileType(int x, int y) const;
 
 	struct Room {
@@ -39,17 +36,13 @@ public:
 	Player* GetPlayer() const { return player; }
 	int GetTileSize() const { return TILE_SIZE; }
 
-	// 拡大率を取得
 	float GetZoomRate() const { return ZOOM_RATE; }
-	// エンティティが現在見えているか確認する
 	bool IsTileVisible(int x, int y) const;
 
-	// カメラ座標を更新する
 	void UpdateCamera(int player_map_x, int player_map_y);
 	int GetCameraX() const { return camera_x; }
 	int GetCameraY() const { return camera_y; }
 
-	// マップオーバーレイを描画する関数
 	void DrawOverlayMap(int screen_width, int screen_height);
 
 	class ItemManager* GetItemManager() { return itemManager; }
@@ -69,8 +62,8 @@ private:
 	int WallImage;
 
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
-	int exploredData[MAP_HEIGHT][MAP_WIDTH] = { 0 }; // 探索済みフラグ
-	int visibleData[MAP_HEIGHT][MAP_WIDTH] = { 0 };  // 現在の視界フラグ
+	int exploredData[MAP_HEIGHT][MAP_WIDTH] = { 0 }; 
+	int visibleData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 
 	std::vector<Room> rooms;
 	std::mt19937 mt;

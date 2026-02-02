@@ -1,10 +1,9 @@
-// Item.h
 #pragma once
 #include <vector>
 #include "DxLib.h"
 
-// 【修正】#include "Stage.h" を消して、下の1行を追加
-class Stage;
+class Stage; // 前方宣言
+class Player; // 追加
 
 enum E_ITEM_TYPE {
     ITEM_POTION_HEAL,
@@ -23,13 +22,12 @@ public:
     ItemManager();
     ~ItemManager();
 
-    // 【修正】struct Stage::Room ではなく Stage::Room にする
-    void SpawnItems(const std::vector<class Stage::Room>& rooms);
+    // Stageのポインタを受け取るように変更
+    void SpawnItems(Stage* stage);
+    void Draw(Stage* stage);
 
-    // class Stage* stage と書くことで、詳細を知らなくてもコンパイルを通します
-    void Draw(class Stage* stage);
-
-    void PickUpItem(int x, int y);
+    // プレイヤーに効果を与えるために Player* を追加
+    void PickUpItem(int x, int y, Player* player);
 
 private:
     std::vector<ItemData> items;
