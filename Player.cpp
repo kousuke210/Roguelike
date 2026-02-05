@@ -7,6 +7,7 @@
 Player::Player()
 	: map_x(0), map_y(0), hp(35), maxHP(35), attack(5), stage(nullptr)
 {
+	PlayerGraph = LoadGraph("Assets/Chara_1.png");
 }
 
 Player::~Player() {}
@@ -42,10 +43,26 @@ bool Player::Update() {
 }
 
 void Player::Draw() {
-	if (!stage || !stage->IsTileVisible(map_x, map_y)) return;
+	if (!stage || !stage->IsTileVisible(map_x, map_y) || PlayerGraph == -1) return;
+
 	const float z = stage->GetZoomRate();
 	float ds = stage->GetTileSize() * z;
-	float cx = (map_x * ds + ds / 2.0f) - stage->GetCameraX() * z;
-	float cy = (map_y * ds + ds / 2.0f) - stage->GetCameraY() * z;
-	DrawCircle((int)cx, (int)cy, (int)(ds / 2.0f - 5 * z), GetColor(255, 255, 255), TRUE);
+
+	int lx = (int)(map_x * ds - stage->GetCameraX() * z);
+	int ty = (int)(map_y * ds - stage->GetCameraY() * z);
+
+	// タイルの幅の何%にするか (0.8f = 80%)
+	const float SIZE_RATE = 0.75f;
+
+	float aspect = 163.0f / 109.0f;    // 縦 / 横
+	int drawW = (int)(ds * SIZE_RATE); // 縮小後の横幅
+	int drawH = (int)(drawW * aspect); // 横幅に比率を掛けた高さ
+
+	// タイルの左右中央に来るようにずらす
+	int offsetX = ((int)ds - drawW) / 2;
+
+	// 足元がマスの底辺に合うように調整
+	int drawY = ty - (drawH - (int)ds);
+
+	DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, PlayerGraph, TRUE);
 }

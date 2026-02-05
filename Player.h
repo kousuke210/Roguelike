@@ -34,6 +34,8 @@ private:
 	int maxHP;    // Å‘å‚Ì‘Ì—Í
 	int attack;   // UŒ‚—Í
 
+	int PlayerGraph;
+
 	Stage* stage;
 
 	bool CheckCollision(int next_map_x, int next_map_y);

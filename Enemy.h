@@ -16,6 +16,7 @@ public:
 private:
 	int map_x;
 	int map_y;
+	int EnemyGraph;
 
 	Stage* stage;
 

@@ -11,7 +11,10 @@ void DxInit()
     ChangeWindowMode(true);
     SetGraphMode(1400, 700, 32);
     SetBackgroundColor(0, 0, 0);
-    if (DxLib_Init() == -1) DxLib_End();
+    if (DxLib_Init() == -1)
+    {
+        DxLib_End();
+    }
     SetDrawScreen(DX_SCREEN_BACK);
     Input::Initialize(GetMainWindowHandle());
 }
@@ -61,9 +64,9 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             break;
 
         case SCENE_PLAY:
-            if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
+            if (Input::IsKeyDown(KEY_INPUT_M)) isMapOverlayVisible = !isMapOverlayVisible;
 
-            // 強制遷移デバッグ用
+            // 強制遷移（デバッグ用）
             if (Input::IsKeyDown(KEY_INPUT_G)) scene.SetScene(SCENE_GAMEOVER);
             if (Input::IsKeyDown(KEY_INPUT_C)) scene.SetScene(SCENE_GAMECLEAR);
 
@@ -109,6 +112,10 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         WaitTimer(16);
     }
 
-    delete player; delete enemy; delete stage;
-    Input::Release(); DxLib_End(); return 0;
+    delete player; 
+    delete enemy;
+    delete stage;
+    Input::Release();
+    DxLib_End(); 
+    return 0;
 }

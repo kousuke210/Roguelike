@@ -11,10 +11,15 @@ Enemy::Enemy()
     map_x(0),
     map_y(0)
 {
+    EnemyGraph = LoadGraph("Assets/skelton_1.png");
 }
 
 Enemy::~Enemy()
 {
+    if (EnemyGraph != -1) 
+    {
+        DeleteGraph(EnemyGraph);
+    }
 }
 
 void Enemy::SetPosition(int map_x, int map_y)
@@ -46,67 +51,50 @@ bool Enemy::CheckCollision(int next_map_x, int next_map_y)
 
 bool Enemy::Update()
 {
-    // 行動（移動）を実行したかどうか
+    // 移動ロジック（既存のランダム移動）
     bool acted = false;
-
-    // 【ターンごとのランダム移動のロジック】
-
-    // 移動方向の配列 {dx, dy} (停止、上下左右の5方向)
     const int num_directions = 5;
-    const int dir_coords[num_directions][2] = 
-    {
-        {0, 0}, // 停止
-        {0, -1}, // 上
-        {0, 1},  // 下
-        {-1, 0}, // 左
-        {1, 0}   // 右
-    };
-
-    // 乱数エンジンと分布
-    // 静的な乱数エンジンを使用し、Updateが呼び出されるたびに異なる結果を得る
+    const int dir_coords[num_directions][2] = { {0,0}, {0,-1}, {0,1}, {-1,0}, {1,0} };
     static std::mt19937 mt(static_cast<unsigned int>(time(NULL)));
     std::uniform_int_distribution<> dir_dist(0, num_directions - 1);
 
-    // ランダムな移動方向を選択し、移動可能であれば実行
-    // (ここでは、ランダムに1つの方向を選択して、移動を試みる)
     int random_dir_index = dir_dist(mt);
-
     int dx = dir_coords[random_dir_index][0];
     int dy = dir_coords[random_dir_index][1];
 
-    if (dx != 0 || dy != 0) // 停止 (0,0) 以外の場合
-    {
+    if (dx != 0 || dy != 0) {
         int next_map_x = map_x + dx;
         int next_map_y = map_y + dy;
-
-        // 衝突判定
-        if (!CheckCollision(next_map_x, next_map_y))
-        {
-            // 移動実行
+        if (!CheckCollision(next_map_x, next_map_y)) {
             map_x = next_map_x;
             map_y = next_map_y;
-            acted = true;
-        }
-        else
-        {
-            // 移動できなかった場合でも、行動を試みたのでターンを終了
-            acted = true;
         }
     }
-    else // 停止 (0,0) を選んだ場合も行動完了とみなす
-    {
-        acted = true;
-    }
-
-    return acted; // 行動を実行したかどうかを返す
+    return true;
 }
 
-void Enemy::Draw() 
+void Enemy::Draw()
 {
-    if (!stage || !stage->IsTileVisible(map_x, map_y)) return;
+    if (!stage || !stage->IsTileVisible(map_x, map_y) || EnemyGraph == -1) return;
+
     const float z = stage->GetZoomRate();
     float ds = stage->GetTileSize() * z;
-    float cx = (map_x * ds + ds / 2.0f) - stage->GetCameraX() * z;
-    float cy = (map_y * ds + ds / 2.0f) - stage->GetCameraY() * z;
-    DrawCircle((int)cx, (int)cy, (int)(ds / 2.0f - 5 * z), GetColor(255, 0, 0), TRUE);
+
+    int lx = (int)(map_x * ds - stage->GetCameraX() * z);
+    int ty = (int)(map_y * ds - stage->GetCameraY() * z);
+
+    // 何%にするか (0.8f = 80%)
+    const float SIZE_RATE = 0.7f;
+
+    float aspect = 154.0f / 96.0f; // 元画像の比率 (縦/横)
+    int drawW = (int)(ds * SIZE_RATE); // 縮小後の横幅
+    int drawH = (int)(drawW * aspect); // 横幅に比率を掛けた高さ
+
+    // キャラクターがタイルの左右中央に来るようにずらす
+    int offsetX = ((int)ds - drawW) / 2;
+
+    // 足元がマスの底辺に合うように調整
+    int drawY = ty - (drawH - (int)ds);
+
+    DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, EnemyGraph, TRUE);
 }
