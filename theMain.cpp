@@ -27,18 +27,20 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     Enemy* enemy = new Enemy();
     Stage* stage = new Stage();
 
-    auto InitGame = [&]() {
+    auto InitGame = [&]() 
+    {
         player->SetStage(stage);
         stage->SetPlayer(player);
         stage->GenerateMap();
-        if (!stage->GetRooms().empty()) {
+        if (!stage->GetRooms().empty()) 
+        {
             auto& r = stage->GetRooms()[0];
             player->SetPosition(r.center_x, r.center_y);
             enemy->SetPosition(r.center_x + 2, r.center_y);
             enemy->SetStage(stage);
             stage->UpdateCamera(player->GetMapX(), player->GetMapY());
         }
-        };
+    };
 
     InitGame();
 
@@ -74,20 +76,69 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             player->Draw();
             enemy->Draw();
 
-            if (!isMapOverlayVisible) {
-                if (isPlayerTurn) {
-                    if (player->Update()) {
-                        stage->UpdateCamera(player->GetMapX(), player->GetMapY());
-                        stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
-                        isPlayerTurn = false;
+            if (!isMapOverlayVisible) 
+            {
+                if (isPlayerTurn) 
+                {
+                    // 移動入力があった場合
+                    int dx = 0, dy = 0;
+                    if (Input::IsKeyDown(KEY_INPUT_W))
+                    {
+                        dy = -1;
+                    }
+                    else if (Input::IsKeyDown(KEY_INPUT_S))
+                    {
+                        dy = 1;
+                    }
+                    else if (Input::IsKeyDown(KEY_INPUT_A)) 
+                    {
+                        dx = -1;
+                    }
+                    else if (Input::IsKeyDown(KEY_INPUT_D))
+                    {
+                        dx = 1;
+                    }
+                    if (dx != 0 || dy != 0) {
+                        int nx = player->GetMapX() + dx;
+                        int ny = player->GetMapY() + dy;
+
+                        // 移動先に敵がいるかチェック
+                        if (nx == enemy->GetMapX() && ny == enemy->GetMapY() && enemy->GetHP() > 0) 
+                        {
+                            int damage = player->GetAttack();
+                            bool isDead = enemy->TakeDamage(damage);
+
+                            if (isDead) 
+                            {
+                                enemy->SetPosition(-10, -10);
+                            }
+                            else 
+                            {
+                                // 2. 敵が生き残ったので反撃！
+                                player->Heal(-5); // 5ダメージ受ける
+                            }
+
+                            // 攻撃動作も1ターン消費
+                            isPlayerTurn = false;
+                        }
+                        else if (player->Update())
+                        {
+                            // 通常移動（敵がいない場合）
+                            stage->UpdateCamera(player->GetMapX(), player->GetMapY());
+                            stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
+                            isPlayerTurn = false;
+                        }
                     }
                 }
-                else {
+                else 
+                {
                     if (enemy->Update()) isPlayerTurn = true;
                 }
-            }
-            else {
-                stage->DrawOverlayMap(1400, 700);
+
+                // 【重要】HP 0 判定：毎フレームチェック
+                if (player->GetHP() <= 0) {
+                    scene.SetScene(SCENE_GAMEOVER);
+                }
             }
 
             // UI

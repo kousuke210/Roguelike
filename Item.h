@@ -2,22 +2,25 @@
 #include <vector>
 #include "DxLib.h"
 
-class Stage; // ‘O•ûéŒ¾
-class Player; // ’Ç‰Á
+class Stage;
+class Player;
 
-enum E_ITEM_TYPE {
+enum E_ITEM_TYPE 
+{
     ITEM_POTION_HEAL,
     ITEM_POTION_ATK,
     ITEM_MAX
 };
 
-struct ItemData {
+struct ItemData 
+{
     int map_x;
     int map_y;
     E_ITEM_TYPE type;
 };
 
-class ItemManager {
+class ItemManager 
+{
 public:
     ItemManager();
     ~ItemManager();

@@ -7,9 +7,7 @@
 #include <ctime>
 
 Enemy::Enemy()
-    :
-    map_x(0),
-    map_y(0)
+    : map_x(0), map_y(0), stage(nullptr), hp(10) 
 {
     EnemyGraph = LoadGraph("Assets/skelton_1.png");
 }
@@ -35,14 +33,15 @@ bool Enemy::CheckCollision(int next_map_x, int next_map_y)
     // 移動先のマスが壁（TILE_WALL）であれば衝突
     if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL)
     {
-        return true; // 衝突あり
+        return true; // 衝突
     }
 
-    // 【追加】プレイヤーとの衝突判定
+    // プレイヤーとの衝突判定
     if (stage->GetPlayer() != nullptr) 
     {
-        if (next_map_x == stage->GetPlayer()->GetMapX() && next_map_y == stage->GetPlayer()->GetMapY()) {
-            return true; // プレイヤーがいるマスへは移動しない（衝突あり）
+        if (next_map_x == stage->GetPlayer()->GetMapX() && next_map_y == stage->GetPlayer()->GetMapY()) 
+        {
+            return true; // プレイヤーがいるマスへは移動しない
         }
     }
 
@@ -51,7 +50,10 @@ bool Enemy::CheckCollision(int next_map_x, int next_map_y)
 
 bool Enemy::Update()
 {
-    // 移動ロジック（既存のランダム移動）
+    if (hp <= 0 || map_x < 0)
+    {
+        return true;
+    }
     bool acted = false;
     const int num_directions = 5;
     const int dir_coords[num_directions][2] = { {0,0}, {0,-1}, {0,1}, {-1,0}, {1,0} };
@@ -62,15 +64,25 @@ bool Enemy::Update()
     int dx = dir_coords[random_dir_index][0];
     int dy = dir_coords[random_dir_index][1];
 
-    if (dx != 0 || dy != 0) {
+    if (dx != 0 || dy != 0)
+    {
         int next_map_x = map_x + dx;
         int next_map_y = map_y + dy;
-        if (!CheckCollision(next_map_x, next_map_y)) {
+
+        Player* player = stage->GetPlayer();
+        if (player && next_map_x == player->GetMapX() && next_map_y == player->GetMapY())
+        {
+            player->Heal(-5);
+            acted = true;
+        }
+        else if (!CheckCollision(next_map_x, next_map_y))
+        {
             map_x = next_map_x;
             map_y = next_map_y;
+            acted = true;
         }
     }
-    return true;
+    return acted;
 }
 
 void Enemy::Draw()
@@ -86,14 +98,11 @@ void Enemy::Draw()
     // 何%にするか (0.8f = 80%)
     const float SIZE_RATE = 0.7f;
 
-    float aspect = 154.0f / 96.0f; // 元画像の比率 (縦/横)
-    int drawW = (int)(ds * SIZE_RATE); // 縮小後の横幅
-    int drawH = (int)(drawW * aspect); // 横幅に比率を掛けた高さ
+    float aspect = 154.0f / 96.0f;
+    int drawW = (int)(ds * SIZE_RATE);
+    int drawH = (int)(drawW * aspect);
 
-    // キャラクターがタイルの左右中央に来るようにずらす
     int offsetX = ((int)ds - drawW) / 2;
-
-    // 足元がマスの底辺に合うように調整
     int drawY = ty - (drawH - (int)ds);
 
     DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, EnemyGraph, TRUE);

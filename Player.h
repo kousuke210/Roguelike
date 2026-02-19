@@ -19,7 +19,7 @@ public:
 	int GetMaxHP() const { return maxHP; }
 	void Heal(int amount) {
 		hp += amount;
-		if (hp > maxHP) hp = maxHP; // 最大値を超えないように制限
+		if (hp > maxHP) hp = maxHP; // 最大値を超えないように
 	}
 
 	int GetAttack() const { return attack; }
@@ -29,7 +29,7 @@ private:
 	int map_x;
 	int map_y;
 
-	// ステータス変数
+	// ステータス
 	int hp;       // 現在の体力
 	int maxHP;    // 最大の体力
 	int attack;   // 攻撃力

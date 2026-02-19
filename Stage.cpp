@@ -72,7 +72,6 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	const float z = ZOOM_RATE;
 	const float ds = TILE_SIZE * z;
 
-	// y’²®ƒ|ƒCƒ“ƒgz
 	const int FOG_ALPHA = 140;   // Ž‹ŠEŠOiˆê“x’Ê‚Á‚½êŠj‚ÌˆÃ‚³
 	const int UNEXPLORED_ALPHA = 210; // –¢’TõƒGƒŠƒAiˆê“x‚às‚Á‚Ä‚¢‚È‚¢êŠj‚ÌˆÃ‚³
 
@@ -84,8 +83,6 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	bool isVis = IsTileVisible(x, y);
 	bool isExp = (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) && (exploredData[y][x] == 1);
 
-	// --- •`‰æˆ— ---
-
 	if (type == TILE_FLOOR)
 	{
 		// °‚ð•`‰æ
@@ -93,7 +90,7 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	}
 	else if (type == TILE_WALL)
 	{
-		// •Çi—×Ú”»’è‚ ‚èj‚ð•`‰æ
+		// •Ç‚ð•`‰æ
 		bool adj = false;
 		if (GetTileType(x, y - 1) == TILE_FLOOR || GetTileType(x, y + 1) == TILE_FLOOR ||
 			GetTileType(x - 1, y) == TILE_FLOOR || GetTileType(x + 1, y) == TILE_FLOOR ||
@@ -122,6 +119,7 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 	}
 }
+
 void Stage::UpdateCamera(int px, int py) 
 {
 
@@ -151,7 +149,6 @@ void Stage::UpdateCamera(int px, int py)
 void Stage::DrawOverlayMap(int sw, int sh) 
 {
 	const int SCALE = 8;
-	// yC³zˆø” sw(1400), sh(700) ‚ÉŠî‚Ã‚¢‚Ä’†‰›ˆÊ’u‚ðŒvŽZ
 	int sx = (sw - MAP_WIDTH * SCALE) / 2;
 	int sy = (sh - MAP_HEIGHT * SCALE) / 2;
 
@@ -183,11 +180,9 @@ void Stage::GenerateMap()
 }
 
 void Stage::Draw() {
-	// 1. ’n–Ê‚Ì•`‰æ
 	for (int y = 0; y < MAP_HEIGHT; ++y)
 		for (int x = 0; x < MAP_WIDTH; ++x) DrawTile(x, y, mapData[y][x], camera_x, camera_y);
 
-	// 2. ƒAƒCƒeƒ€‚Ì•`‰æ (’n–Ê‚Ìã‚Éd‚Ë‚é)
 	itemManager->Draw(this);
 }
 
@@ -214,7 +209,10 @@ void Stage::CreateRooms()
 
 void Stage::CreateCorridors() 
 {
-	if (rooms.size() < 2) return;
+	if (rooms.size() < 2)
+	{
+		return;
+	}
 	for (size_t i = 0; i < rooms.size() - 1; ++i) 
 	{
 		int x1 = rooms[i].center_x; int y1 = rooms[i].center_y;

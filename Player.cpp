@@ -10,14 +10,18 @@ Player::Player()
 	PlayerGraph = LoadGraph("Assets/Chara_1.png");
 }
 
-Player::~Player() {}
+Player::~Player() 
+{
+}
 
-void Player::SetPosition(int map_x, int map_y) {
+void Player::SetPosition(int map_x, int map_y) 
+{
 	this->map_x = map_x;
 	this->map_y = map_y;
 }
 
-bool Player::CheckCollision(int next_map_x, int next_map_y) {
+bool Player::CheckCollision(int next_map_x, int next_map_y) 
+{
 	if (!stage) return true;
 	if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
 	return false;
@@ -25,15 +29,33 @@ bool Player::CheckCollision(int next_map_x, int next_map_y) {
 
 bool Player::Update() {
 	int dx = 0, dy = 0;
-	if (Input::IsKeyDown(KEY_INPUT_W)) dy = -1;
-	else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
-	else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
-	else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
+	if (Input::IsKeyDown(KEY_INPUT_W))
+	{
+		dy = -1;
+	}
+	else if (Input::IsKeyDown(KEY_INPUT_S))
+	{
+		dy = 1;
+	}
+	else if (Input::IsKeyDown(KEY_INPUT_A))
+	{
+		dx = -1;
+	}
+	else if (Input::IsKeyDown(KEY_INPUT_D))
+	{
+		dx = 1;
+	}
+
+	if (Input::IsKeyDown(KEY_INPUT_Q))
+	{
+
+	}
 
 	if (dx != 0 || dy != 0) {
 		int next_x = map_x + dx;
 		int next_y = map_y + dy;
-		if (!CheckCollision(next_x, next_y)) {
+		if (!CheckCollision(next_x, next_y)) 
+		{
 			map_x = next_x;
 			map_y = next_y;
 		}
@@ -42,7 +64,8 @@ bool Player::Update() {
 	return false;
 }
 
-void Player::Draw() {
+void Player::Draw() 
+{
 	if (!stage || !stage->IsTileVisible(map_x, map_y) || PlayerGraph == -1) return;
 
 	const float z = stage->GetZoomRate();
@@ -53,15 +76,10 @@ void Player::Draw() {
 
 	// タイルの幅の何%にするか (0.8f = 80%)
 	const float SIZE_RATE = 0.75f;
-
-	float aspect = 163.0f / 109.0f;    // 縦 / 横
-	int drawW = (int)(ds * SIZE_RATE); // 縮小後の横幅
-	int drawH = (int)(drawW * aspect); // 横幅に比率を掛けた高さ
-
-	// タイルの左右中央に来るようにずらす
+	float aspect = 163.0f / 109.0f;
+	int drawW = (int)(ds * SIZE_RATE);
+	int drawH = (int)(drawW * aspect);
 	int offsetX = ((int)ds - drawW) / 2;
-
-	// 足元がマスの底辺に合うように調整
 	int drawY = ty - (drawH - (int)ds);
 
 	DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, PlayerGraph, TRUE);
