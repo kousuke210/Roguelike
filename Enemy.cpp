@@ -26,26 +26,16 @@ void Enemy::SetPosition(int map_x, int map_y)
     this->map_y = map_y;
 }
 
-bool Enemy::CheckCollision(int next_map_x, int next_map_y)
+bool Enemy::CheckCollision(int next_map_x, int next_map_y) 
 {
     if (!stage) return true;
+    if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
 
-    // 移動先のマスが壁（TILE_WALL）であれば衝突
-    if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL)
-    {
-        return true; // 衝突
-    }
+    // プレイヤーとの衝突
+    Player* p = stage->GetPlayer();
+    if (p && next_map_x == p->GetMapX() && next_map_y == p->GetMapY()) return true;
 
-    // プレイヤーとの衝突判定
-    if (stage->GetPlayer() != nullptr) 
-    {
-        if (next_map_x == stage->GetPlayer()->GetMapX() && next_map_y == stage->GetPlayer()->GetMapY()) 
-        {
-            return true; // プレイヤーがいるマスへは移動しない
-        }
-    }
-
-    return false; // 衝突なし
+    return false;
 }
 
 bool Enemy::Update()

@@ -5,6 +5,7 @@
 #include "Input.h"
 #include "Item.h"
 #include "SceneManager.h"
+#include <vector>
 
 void DxInit()
 {
@@ -24,23 +25,35 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     DxInit();
     SceneManager scene;
     Player* player = new Player();
-    Enemy* enemy = new Enemy();
     Stage* stage = new Stage();
+    std::vector<Enemy*> enemies;
 
-    auto InitGame = [&]() 
-    {
-        player->SetStage(stage);
-        stage->SetPlayer(player);
-        stage->GenerateMap();
-        if (!stage->GetRooms().empty()) 
+    auto InitGame = [&]()
         {
-            auto& r = stage->GetRooms()[0];
-            player->SetPosition(r.center_x, r.center_y);
-            enemy->SetPosition(r.center_x + 2, r.center_y);
-            enemy->SetStage(stage);
+            for (auto e : enemies) { delete e; }
+            enemies.clear();
+
+            player->SetStage(stage);
+            stage->SetPlayer(player);
+            stage->GenerateMap();
+
+            const auto& rooms = stage->GetRooms();
+            for (size_t i = 0; i < rooms.size(); i++)
+            {
+                if (i == 0)
+                {
+                    player->SetPosition(rooms[i].center_x, rooms[i].center_y);
+                }
+                else
+                {
+                    Enemy* newEnemy = new Enemy();
+                    newEnemy->SetStage(stage);
+                    newEnemy->SetPosition(rooms[i].center_x, rooms[i].center_y);
+                    enemies.push_back(newEnemy);
+                }
+            }
             stage->UpdateCamera(player->GetMapX(), player->GetMapY());
-        }
-    };
+        };
 
     InitGame();
 
@@ -66,82 +79,77 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             break;
 
         case SCENE_PLAY:
-            if (Input::IsKeyDown(KEY_INPUT_M)) isMapOverlayVisible = !isMapOverlayVisible;
+            if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
 
-            // 強制遷移（デバッグ用）
             if (Input::IsKeyDown(KEY_INPUT_G)) scene.SetScene(SCENE_GAMEOVER);
             if (Input::IsKeyDown(KEY_INPUT_C)) scene.SetScene(SCENE_GAMECLEAR);
 
             stage->Draw();
+            for (auto e : enemies) { e->Draw(); }
             player->Draw();
-            enemy->Draw();
 
-            if (!isMapOverlayVisible) 
+            if (!isMapOverlayVisible)
             {
-                if (isPlayerTurn) 
+                if (isPlayerTurn)
                 {
-                    // 移動入力があった場合
                     int dx = 0, dy = 0;
-                    if (Input::IsKeyDown(KEY_INPUT_W))
-                    {
-                        dy = -1;
-                    }
-                    else if (Input::IsKeyDown(KEY_INPUT_S))
-                    {
-                        dy = 1;
-                    }
-                    else if (Input::IsKeyDown(KEY_INPUT_A)) 
-                    {
-                        dx = -1;
-                    }
-                    else if (Input::IsKeyDown(KEY_INPUT_D))
-                    {
-                        dx = 1;
-                    }
+                    if (Input::IsKeyDown(KEY_INPUT_W)) dy = -1;
+                    else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
+                    else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
+                    else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
+
                     if (dx != 0 || dy != 0) {
                         int nx = player->GetMapX() + dx;
                         int ny = player->GetMapY() + dy;
 
-                        // 移動先に敵がいるかチェック
-                        if (nx == enemy->GetMapX() && ny == enemy->GetMapY() && enemy->GetHP() > 0) 
+                        bool attacked = false;
+                        for (auto e : enemies)
                         {
-                            int damage = player->GetAttack();
-                            bool isDead = enemy->TakeDamage(damage);
-
-                            if (isDead) 
+                            // 生きている敵（座標が有効な敵）との衝突判定を厳密化
+                            if (e->GetHP() > 0 && nx == e->GetMapX() && ny == e->GetMapY())
                             {
-                                enemy->SetPosition(-10, -10);
+                                if (e->TakeDamage(player->GetAttack()))
+                                {
+                                    // 倒した敵は判定外に飛ばす
+                                    e->SetPosition(-100, -100);
+                                }
+                                else
+                                {
+                                    player->Heal(-5);
+                                }
+                                attacked = true;
+                                isPlayerTurn = false;
+                                break;
                             }
-                            else 
-                            {
-                                // 2. 敵が生き残ったので反撃！
-                                player->Heal(-5); // 5ダメージ受ける
-                            }
-
-                            // 攻撃動作も1ターン消費
-                            isPlayerTurn = false;
                         }
-                        else if (player->Update())
+
+                        if (!attacked && player->Update())
                         {
-                            // 通常移動（敵がいない場合）
                             stage->UpdateCamera(player->GetMapX(), player->GetMapY());
                             stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
                             isPlayerTurn = false;
                         }
                     }
                 }
-                else 
+                else
                 {
-                    if (enemy->Update()) isPlayerTurn = true;
+                    // 【瞬間移動対策】敵のターンになったら、全個体を1回ずつだけ更新して即座にプレイヤーのターンに戻す
+                    for (auto e : enemies)
+                    {
+                        e->Update();
+                    }
+                    isPlayerTurn = true;
                 }
 
-                // 【重要】HP 0 判定：毎フレームチェック
                 if (player->GetHP() <= 0) {
                     scene.SetScene(SCENE_GAMEOVER);
                 }
             }
+            else
+            {
+                stage->DrawOverlayMap(1400, 700);
+            }
 
-            // UI
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
             DrawFormatString(500, 10, white, "ATK %d", player->GetAttack());
             break;
@@ -163,10 +171,14 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         WaitTimer(16);
     }
 
-    delete player; 
-    delete enemy;
+    delete player;
+    for (auto e : enemies) 
+    { 
+        delete e; 
+    }
+    enemies.clear();
     delete stage;
     Input::Release();
-    DxLib_End(); 
+    DxLib_End();
     return 0;
 }
