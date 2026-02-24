@@ -152,18 +152,24 @@ void Stage::DrawOverlayMap(int sw, int sh)
 	int sx = (sw - MAP_WIDTH * SCALE) / 2;
 	int sy = (sh - MAP_HEIGHT * SCALE) / 2;
 
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 180);
-	DrawBox(0, 0, sw, sh, GetColor(0, 0, 0), TRUE);
-	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-
 	for (int y = 0; y < MAP_HEIGHT; ++y) 
 	{
-		for (int x = 0; x < MAP_WIDTH; ++x)
+		for (int x = 0; x < MAP_WIDTH; ++x) 
 		{
+			// 探索済みの床や壁を描画
 			if (exploredData[y][x]) 
 			{
 				int c = (mapData[y][x] == TILE_FLOOR) ? GetColor(50, 50, 200) : GetColor(100, 100, 100);
 				DrawBox(sx + x * SCALE, sy + y * SCALE, sx + (x + 1) * SCALE, sy + (y + 1) * SCALE, c, TRUE);
+
+				if (itemMapData[y][x] == 1) // ATKポーション(赤)
+				{
+					DrawBox(sx + x * SCALE + 1, sy + y * SCALE + 1, sx + (x + 1) * SCALE - 1, sy + (y + 1) * SCALE - 1, GetColor(255, 0, 0), TRUE);
+				}
+				else if (itemMapData[y][x] == 2)  // HEALポーション(緑)
+				{
+					DrawBox(sx + x * SCALE + 1, sy + y * SCALE + 1, sx + (x + 1) * SCALE - 1, sy + (y + 1) * SCALE - 1, GetColor(0, 255, 0), TRUE);
+				}
 			}
 		}
 	}

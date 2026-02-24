@@ -84,3 +84,19 @@ void Player::Draw()
 
 	DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, PlayerGraph, TRUE);
 }
+
+void Player::ShowPickUpMessage(const char* text) 
+{
+	strcpy_s(pickUpText, text);
+	messageTimer = 90; // –ñ1.5•bŠÔ•\Ž¦
+}
+
+void Player::DrawMessage() 
+{
+	if (messageTimer > 0) 
+	{
+		// ‰æ–Ê’†‰›•t‹ß‚É•\Ž¦
+		DrawString(630, 250, pickUpText, GetColor(255, 255, 0));
+		messageTimer--;
+	}
+}

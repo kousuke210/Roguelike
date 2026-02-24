@@ -7,6 +7,9 @@
 #include "SceneManager.h"
 #include <vector>
 
+int bgmHandle;
+int itemSEHandle;
+
 void DxInit()
 {
     ChangeWindowMode(true);
@@ -18,6 +21,11 @@ void DxInit()
     }
     SetDrawScreen(DX_SCREEN_BACK);
     Input::Initialize(GetMainWindowHandle());
+    bgmHandle = LoadSoundMem("BGM/8bit21.mp3");
+    ChangeVolumeSoundMem(150, bgmHandle);
+
+    itemSEHandle = LoadSoundMem("BGM/drink01.mp3");
+    ChangeVolumeSoundMem(255, itemSEHandle);
 }
 
 int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ int n)
@@ -29,31 +37,36 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     std::vector<Enemy*> enemies;
 
     auto InitGame = [&]()
-        {
-            for (auto e : enemies) { delete e; }
+    {
+            player->GetMaxHP();
+
+            for (auto e : enemies)
+            {
+                delete e;
+            }
             enemies.clear();
 
             player->SetStage(stage);
             stage->SetPlayer(player);
             stage->GenerateMap();
 
-            const auto& rooms = stage->GetRooms();
-            for (size_t i = 0; i < rooms.size(); i++)
+            if (!stage->GetRooms().empty())
             {
-                if (i == 0)
-                {
-                    player->SetPosition(rooms[i].center_x, rooms[i].center_y);
-                }
-                else
+                auto& r = stage->GetRooms()[0];
+                player->SetPosition(r.center_x, r.center_y);
+
+                const auto& rooms = stage->GetRooms();
+                for (size_t i = 1; i < rooms.size(); i++)
                 {
                     Enemy* newEnemy = new Enemy();
                     newEnemy->SetStage(stage);
                     newEnemy->SetPosition(rooms[i].center_x, rooms[i].center_y);
                     enemies.push_back(newEnemy);
                 }
+
+                stage->UpdateCamera(player->GetMapX(), player->GetMapY());
             }
-            stage->UpdateCamera(player->GetMapX(), player->GetMapY());
-        };
+    };
 
     InitGame();
 
@@ -70,6 +83,10 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         switch (scene.GetScene())
         {
         case SCENE_TITLE:
+            if (CheckSoundMem(bgmHandle) == 1)
+            {
+                StopSoundMem(bgmHandle);
+            }
             DrawString(600, 300, "TITLE SCREEN", white);
             DrawString(550, 350, "Press SPACE to Start", white);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) {
@@ -79,15 +96,21 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             break;
 
         case SCENE_PLAY:
+            if (CheckSoundMem(bgmHandle) == 0) 
+            {
+                PlaySoundMem(bgmHandle, DX_PLAYTYPE_LOOP);
+            }
+
             if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
 
+            //デバッグ用強制シーン遷移
             if (Input::IsKeyDown(KEY_INPUT_G)) scene.SetScene(SCENE_GAMEOVER);
             if (Input::IsKeyDown(KEY_INPUT_C)) scene.SetScene(SCENE_GAMECLEAR);
 
             stage->Draw();
             for (auto e : enemies) { e->Draw(); }
             player->Draw();
-
+            player->DrawMessage();
             if (!isMapOverlayVisible)
             {
                 if (isPlayerTurn)
@@ -133,7 +156,6 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 }
                 else
                 {
-                    // 【瞬間移動対策】敵のターンになったら、全個体を1回ずつだけ更新して即座にプレイヤーのターンに戻す
                     for (auto e : enemies)
                     {
                         e->Update();
@@ -155,12 +177,20 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             break;
 
         case SCENE_GAMEOVER:
+            if (CheckSoundMem(bgmHandle) == 1)
+            {
+                StopSoundMem(bgmHandle);
+            }    
             DrawString(600, 300, "GAME OVER", GetColor(255, 0, 0));
             DrawString(550, 350, "Press SPACE to Title", white);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);
             break;
 
         case SCENE_GAMECLEAR:
+            if (CheckSoundMem(bgmHandle) == 1)
+            {
+                StopSoundMem(bgmHandle);
+            }
             DrawString(600, 300, "GAME CLEAR!", GetColor(255, 255, 0));
             DrawString(550, 350, "Press SPACE to Title", white);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);

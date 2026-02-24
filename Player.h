@@ -25,6 +25,9 @@ public:
 	int GetAttack() const { return attack; }
 	void AddAttack(int amount) { attack += amount; }
 
+	void ShowPickUpMessage(const char* text);
+	void DrawMessage();
+
 private:
 	int map_x;
 	int map_y;
@@ -33,8 +36,9 @@ private:
 	int hp;       // 現在の体力
 	int maxHP;    // 最大の体力
 	int attack;   // 攻撃力
-
 	int PlayerGraph;
+	char pickUpText[64] = ""; // メッセージ内容
+	int messageTimer = 0;     // 表示時間管理
 
 	Stage* stage;
 

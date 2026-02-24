@@ -5,6 +5,9 @@
 
 ItemManager::ItemManager() 
 {
+    // 画像の読み込み
+    potionAtkGraph = LoadGraph("Assets/POTION_ATK.png");
+    potionHealGraph = LoadGraph("Assets/POTION_HEAL.png");
 }
 
 ItemManager::~ItemManager() 
@@ -37,30 +40,48 @@ void ItemManager::Draw(Stage* stage)
 
     for (const auto& item : items) 
     {
-        if (!stage->IsTileVisible(item.map_x, item.map_y)) continue;
-        int lx = (int)(item.map_x * ds - ox * z);
-        int ty = (int)(item.map_y * ds - oy * z);
-        int color = (item.type == ITEM_POTION_HEAL) ? GetColor(0, 255, 0) : GetColor(255, 0, 0);
-        DrawCircle(lx + (int)ds / 2, ty + (int)ds / 2, (int)(ds / 4), color, TRUE);
+        if (stage->IsTileVisible(item.map_x, item.map_y))
+        {
+            int lx = (int)(item.map_x * ds - ox * z);
+            int ty = (int)(item.map_y * ds - oy * z);
+            stage->SetItemFound(item.map_x, item.map_y, item.type);
+            // --- 画像描画 (サイズ 217x370) ---
+            int graph = (item.type == ITEM_POTION_HEAL) ? potionHealGraph : potionAtkGraph;
+
+            // タイル内でのサイズ調整 (がいこつ等と同様に比率維持)
+            float aspect = 370.0f / 217.0f;
+            int drawW = (int)(ds * 0.6f); // タイル幅の60%
+            int drawH = (int)(drawW * aspect);
+            int offsetX = ((int)ds - drawW) / 2;
+            int drawY = ty + (int)ds - drawH; // 足元合わせ
+
+            DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, graph, TRUE);
+        }
     }
 }
 
 void ItemManager::PickUpItem(int x, int y, Player* player) 
 {
     auto it = std::find_if(items.begin(), items.end(), [x, y](const ItemData& i) 
-        {
-        return i.map_x == x && i.map_y == y;
-        });
-
-    if (it != items.end()) 
     {
+        return i.map_x == x && i.map_y == y;
+    });
+
+    if (it != items.end()) {
+        // 効果音を再生（重複再生を許可する設定が一般的です）
+        // ※itemSEHandle を ItemManager に渡すか、グローバル変数等で参照できるようにしてください
+        extern int itemSEHandle;
+        PlaySoundMem(itemSEHandle, DX_PLAYTYPE_BACK);
+
         if (it->type == ITEM_POTION_HEAL) 
         {
-            player->Heal(10); // HPを10回復
+            player->Heal(10);
+            player->ShowPickUpMessage("HP +10!");
         }
         else if (it->type == ITEM_POTION_ATK) 
         {
-            player->AddAttack(1); // 攻撃力を1アップ
+            player->AddAttack(1);
+            player->ShowPickUpMessage("ATK +1!");
         }
         items.erase(it);
     }

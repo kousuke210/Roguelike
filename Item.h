@@ -33,5 +33,8 @@ public:
     void PickUpItem(int x, int y, Player* player);
 
 private:
+private:
     std::vector<ItemData> items;
+    int potionAtkGraph;
+    int potionHealGraph;
 };

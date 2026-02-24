@@ -44,8 +44,21 @@ public:
 	int GetCameraY() const { return camera_y; }
 
 	void DrawOverlayMap(int screen_width, int screen_height);
-
 	class ItemManager* GetItemManager() { return itemManager; }
+
+	void SetItemFound(int x, int y, int type) 
+	{
+		if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) 
+		{
+			// ATK‚È‚ç1(Ô)AHEAL‚È‚ç2(—Î)‚Æ‚µ‚Ä•Û‘¶
+			itemMapData[y][x] = (type == 0) ? 2 : 1; // E_ITEM_TYPE‚Ì’è‹`‚É‡‚í‚¹‚Ä’²®
+		}
+	}
+	void ClearItemFound(int x, int y) 
+	{
+		if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) itemMapData[y][x] = 0;
+	}
+
 
 private:
 	static const int TILE_SIZE = 50;
@@ -64,6 +77,7 @@ private:
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
 	int exploredData[MAP_HEIGHT][MAP_WIDTH] = { 0 }; 
 	int visibleData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
+	int itemMapData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 
 	std::vector<Room> rooms;
 	std::mt19937 mt;
