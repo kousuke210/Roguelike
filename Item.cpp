@@ -45,15 +45,13 @@ void ItemManager::Draw(Stage* stage)
             int lx = (int)(item.map_x * ds - ox * z);
             int ty = (int)(item.map_y * ds - oy * z);
             stage->SetItemFound(item.map_x, item.map_y, item.type);
-            // --- 画像描画 (サイズ 217x370) ---
             int graph = (item.type == ITEM_POTION_HEAL) ? potionHealGraph : potionAtkGraph;
 
-            // タイル内でのサイズ調整 (がいこつ等と同様に比率維持)
             float aspect = 370.0f / 217.0f;
-            int drawW = (int)(ds * 0.6f); // タイル幅の60%
+            int drawW = (int)(ds * 0.6f);
             int drawH = (int)(drawW * aspect);
             int offsetX = ((int)ds - drawW) / 2;
-            int drawY = ty + (int)ds - drawH; // 足元合わせ
+            int drawY = ty + (int)ds - drawH;
 
             DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, graph, TRUE);
         }
@@ -68,8 +66,7 @@ void ItemManager::PickUpItem(int x, int y, Player* player)
     });
 
     if (it != items.end()) {
-        // 効果音を再生（重複再生を許可する設定が一般的です）
-        // ※itemSEHandle を ItemManager に渡すか、グローバル変数等で参照できるようにしてください
+        // 効果音を再生
         extern int itemSEHandle;
         PlaySoundMem(itemSEHandle, DX_PLAYTYPE_BACK);
 

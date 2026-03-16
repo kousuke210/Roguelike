@@ -96,21 +96,18 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             break;
 
         case SCENE_PLAY:
-            if (CheckSoundMem(bgmHandle) == 0) 
-            {
-                PlaySoundMem(bgmHandle, DX_PLAYTYPE_LOOP);
-            }
+            // BGMのループ再生
+            if (CheckSoundMem(bgmHandle) == 0) PlaySoundMem(bgmHandle, DX_PLAYTYPE_LOOP);
 
             if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
-
-            //デバッグ用強制シーン遷移
-            if (Input::IsKeyDown(KEY_INPUT_G)) scene.SetScene(SCENE_GAMEOVER);
+            if (Input::IsKeyDown(KEY_INPUT_V)) scene.SetScene(SCENE_GAMEOVER);
             if (Input::IsKeyDown(KEY_INPUT_C)) scene.SetScene(SCENE_GAMECLEAR);
 
             stage->Draw();
             for (auto e : enemies) { e->Draw(); }
             player->Draw();
             player->DrawMessage();
+
             if (!isMapOverlayVisible)
             {
                 if (isPlayerTurn)
@@ -128,16 +125,13 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                         bool attacked = false;
                         for (auto e : enemies)
                         {
-                            // 生きている敵（座標が有効な敵）との衝突判定を厳密化
                             if (e->GetHP() > 0 && nx == e->GetMapX() && ny == e->GetMapY())
                             {
-                                if (e->TakeDamage(player->GetAttack()))
+                                if (e->TakeDamage(player->GetAttack())) 
                                 {
-                                    // 倒した敵は判定外に飛ばす
                                     e->SetPosition(-100, -100);
                                 }
-                                else
-                                {
+                                else {
                                     player->Heal(-5);
                                 }
                                 attacked = true;
@@ -156,15 +150,26 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 }
                 else
                 {
-                    for (auto e : enemies)
-                    {
-                        e->Update();
-                    }
+                    for (auto e : enemies) { e->Update(); }
                     isPlayerTurn = true;
                 }
 
-                if (player->GetHP() <= 0) {
+                //ゲームオーバー：プレイヤーのHPが0以下
+                if (player->GetHP() <= 0) 
+                {
                     scene.SetScene(SCENE_GAMEOVER);
+                }
+
+                //ゲームクリア：生きている敵が0
+                int aliveEnemyCount = 0;
+                for (auto e : enemies) 
+                {
+                    if (e->GetHP() > 0) aliveEnemyCount++;
+                }
+
+                if (aliveEnemyCount == 0) 
+                {
+                    scene.SetScene(SCENE_GAMECLEAR);
                 }
             }
             else
@@ -172,8 +177,9 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 stage->DrawOverlayMap(1400, 700);
             }
 
+            // ステータス表示
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
-            DrawFormatString(500, 10, white, "ATK %d", player->GetAttack());
+            DrawFormatString(500, 10, GetColor(255, 255, 255), "ATK %d", player->GetAttack());
             break;
 
         case SCENE_GAMEOVER:

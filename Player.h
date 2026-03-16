@@ -14,7 +14,7 @@ public:
 	int GetMapX() const { return map_x; }
 	int GetMapY() const { return map_y; }
 
-	// --- ステータス関連 ---
+	// ステータス関連
 	int GetHP() const { return hp; }
 	int GetMaxHP() const { return maxHP; }
 	void Heal(int amount) {
@@ -38,7 +38,7 @@ private:
 	int attack;   // 攻撃力
 	int PlayerGraph;
 	char pickUpText[64] = ""; // メッセージ内容
-	int messageTimer = 0;     // 表示時間管理
+	int messageTimer = 0;
 
 	Stage* stage;
 

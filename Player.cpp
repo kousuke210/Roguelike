@@ -46,11 +46,6 @@ bool Player::Update() {
 		dx = 1;
 	}
 
-	if (Input::IsKeyDown(KEY_INPUT_Q))
-	{
-
-	}
-
 	if (dx != 0 || dy != 0) {
 		int next_x = map_x + dx;
 		int next_y = map_y + dy;
