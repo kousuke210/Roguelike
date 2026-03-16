@@ -26,6 +26,8 @@ void DxInit()
 
     itemSEHandle = LoadSoundMem("BGM/drink01.mp3");
     ChangeVolumeSoundMem(255, itemSEHandle);
+
+
 }
 
 int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ int n)
@@ -35,6 +37,10 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     Player* player = new Player();
     Stage* stage = new Stage();
     std::vector<Enemy*> enemies;
+
+    int titleGraph = LoadGraph("Assets/TITLE.png");
+    int clearGraph = LoadGraph("Assets/CLEAR.png");
+    int overGraph = LoadGraph("Assets/OVER.png");
 
     auto InitGame = [&]()
     {
@@ -87,8 +93,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             {
                 StopSoundMem(bgmHandle);
             }
-            DrawString(600, 300, "TITLE SCREEN", white);
-            DrawString(550, 350, "Press SPACE to Start", white);
+            DrawExtendGraph(0, 0, 1400, 700, titleGraph, FALSE);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) {
                 InitGame();
                 scene.SetScene(SCENE_PLAY);
@@ -187,8 +192,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             {
                 StopSoundMem(bgmHandle);
             }    
-            DrawString(600, 300, "GAME OVER", GetColor(255, 0, 0));
-            DrawString(550, 350, "Press SPACE to Title", white);
+            DrawExtendGraph(0, 0, 1400, 700, overGraph, FALSE);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);
             break;
 
@@ -197,8 +201,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             {
                 StopSoundMem(bgmHandle);
             }
-            DrawString(600, 300, "GAME CLEAR!", GetColor(255, 255, 0));
-            DrawString(550, 350, "Press SPACE to Title", white);
+            DrawExtendGraph(0, 0, 1400, 700, clearGraph, FALSE);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);
             break;
         }
