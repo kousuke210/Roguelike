@@ -4,7 +4,7 @@ class Stage;
 
 enum E_ENEMY_TYPE {
 	ENEMY_SKELTON,
-	ENEMY_SLIME, // êVÇµÇ¢ìG
+	ENEMY_SLIME,
 	ENEMY_MAX
 };
 

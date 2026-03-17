@@ -9,8 +9,8 @@ enum E_ITEM_TYPE
 {
     ITEM_POTION_HEAL,   // 回復薬
     ITEM_POTION_ATK,    // 攻撃力UP
-    ITEM_TORCH,         // たいまつ（視界広げる）
-    ITEM_CLAIRVOYANCE,  // 
+    ITEM_TORCH,         // しばらくの間たいまつ（視界広げる）
+    ITEM_CLAIRVOYANCE,  // しばらく敵の位置がわかる
     ITEM_MAX
 };
 
@@ -27,16 +27,15 @@ public:
     ItemManager();
     ~ItemManager();
 
-    // Stageのポインタを受け取るように変更
     void SpawnItems(Stage* stage);
     void Draw(Stage* stage);
 
-    // プレイヤーに効果を与えるために Player* を追加
     void PickUpItem(int x, int y, Player* player);
 
-private:
 private:
     std::vector<ItemData> items;
     int potionAtkGraph;
     int potionHealGraph;
+    int torchGraph;
+    int potionClaGraph;
 };

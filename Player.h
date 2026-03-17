@@ -26,9 +26,11 @@ public:
 	int GetExp() const { return exp; }
 	int GetNextExp() const { return nextExp; }
 	// 経験値を獲得し、レベルアップ判定する
-	void AddExp(int amount) {
+	void AddExp(int amount) 
+	{
 		exp += amount;
-		while (exp >= nextExp) {
+		while (exp >= nextExp) 
+		{
 			LevelUp();
 		}
 	}
@@ -36,12 +38,27 @@ public:
 	int GetAttack() const { return attack; }
 	void AddAttack(int amount) { attack += amount; }
 
-	int torchTurn = 0;          // たいまつの残りターン
-	int clairvoyanceTurn = 0;   // 千里眼の残りターン
+	int torchTurn = 0;
+	int clairvoyanceTurn = 0;
 	void UpdateTurn() 
 	{
-		if (torchTurn > 0) torchTurn--;
-		if (clairvoyanceTurn > 0) clairvoyanceTurn--;
+		// たいまつ
+		if (torchTurn > 0) 
+		{
+			if (--torchTurn == 0) 
+			{
+				this->ShowPickUpMessage("たいまつの効果が切れた！");
+			}
+		}
+
+		// 千里眼
+		if (clairvoyanceTurn > 0) 
+		{
+			if (--clairvoyanceTurn == 0) 
+			{
+				this->ShowPickUpMessage("千里眼の効果が切れた！");
+			}
+		}
 	}
 
 	void ShowPickUpMessage(const char* text);

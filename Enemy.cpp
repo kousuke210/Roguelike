@@ -84,7 +84,14 @@ bool Enemy::Update()
 
 void Enemy::Draw()
 {
-    if (!stage || !stage->IsTileVisible(map_x, map_y) || EnemyGraph == -1) return;
+    if (!stage) return;
+
+    Player* p = stage->GetPlayer();
+    bool isClairvoyance = (p && p->clairvoyanceTurn > 0);
+
+    if (!stage->IsTileVisible(map_x, map_y) && !isClairvoyance) return;
+
+    if (EnemyGraph == -1) return;
 
     const float z = stage->GetZoomRate();
     float ds = stage->GetTileSize() * z;
@@ -92,9 +99,7 @@ void Enemy::Draw()
     int lx = (int)(map_x * ds - stage->GetCameraX() * z);
     int ty = (int)(map_y * ds - stage->GetCameraY() * z);
 
-    // ‰½%‚É‚·‚é‚© (0.8f = 80%)
     const float SIZE_RATE = 0.7f;
-
     float aspect = 154.0f / 96.0f;
     int drawW = (int)(ds * SIZE_RATE);
     int drawH = (int)(drawW * aspect);

@@ -50,9 +50,11 @@ void Stage::SetExplored(int x, int y)
 void Stage::CalculateVisibleTiles(int player_map_x, int player_map_y) 
 {
 	memset(visibleData, 0, sizeof(visibleData));
-	const int sight_range = 2; // Ž‹ŠE‚ÌL‚³
+	int sight_range = (player && player->torchTurn > 0) ? 5 : 2;
+
 	for (int dy = -sight_range; dy <= sight_range; ++dy) 
 	{
+
 		for (int dx = -sight_range; dx <= sight_range; ++dx) 
 		{
 			int tx = player_map_x + dx; int ty = player_map_y + dy;

@@ -112,7 +112,14 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             if (Input::IsKeyDown(KEY_INPUT_C)) scene.SetScene(SCENE_GAMECLEAR);
 
             stage->Draw();
-            for (auto e : enemies) { e->Draw(); }
+            for (auto e : enemies) 
+            {
+                // ç—¢Šá‚ÌŒø‰Ê’†‚È‚çAŽ‹ŠE‚ÉŠÖŒW‚È‚­•`‰æ‚·‚é
+                if (stage->IsTileVisible(e->GetMapX(), e->GetMapY()) || player->clairvoyanceTurn > 0)
+                {
+                    e->Draw();
+                }
+            }
             player->Draw();
             player->DrawMessage();
 
@@ -140,7 +147,8 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                                     e->SetPosition(-100, -100);
                                     player->AddExp(10); // “G‚ð“|‚µ‚½‚çŒoŒ±’l 10 ‚ðŠl“¾
                                 }
-                                else {
+                                else 
+                                {
                                     player->Heal(-5);
                                 }
                                 attacked = true;
@@ -153,6 +161,10 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                         {
                             stage->UpdateCamera(player->GetMapX(), player->GetMapY());
                             stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
+
+                            // Žg—pŒø‰Ê‚Éƒ^[ƒ“§ŒÀ‚Ì‚ ‚éƒAƒCƒeƒ€‚Ìƒ^[ƒ“‚ði‚ß‚é
+                            player->UpdateTurn();
+
                             isPlayerTurn = false;
                         }
                     }
