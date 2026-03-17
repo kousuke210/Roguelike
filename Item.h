@@ -7,8 +7,10 @@ class Player;
 
 enum E_ITEM_TYPE 
 {
-    ITEM_POTION_HEAL,
-    ITEM_POTION_ATK,
+    ITEM_POTION_HEAL,   // ‰ñ•œ–ò
+    ITEM_POTION_ATK,    // UŒ‚—ÍUP
+    ITEM_TORCH,         // ‚½‚¢‚Ü‚ÂiŽ‹ŠEL‚°‚éj
+    ITEM_CLAIRVOYANCE,  // 
     ITEM_MAX
 };
 

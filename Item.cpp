@@ -65,7 +65,8 @@ void ItemManager::PickUpItem(int x, int y, Player* player)
         return i.map_x == x && i.map_y == y;
     });
 
-    if (it != items.end()) {
+    if (it != items.end()) 
+    {
         // Œø‰Ê‰¹‚ğÄ¶
         extern int itemSEHandle;
         PlaySoundMem(itemSEHandle, DX_PLAYTYPE_BACK);

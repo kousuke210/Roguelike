@@ -36,6 +36,14 @@ public:
 	int GetAttack() const { return attack; }
 	void AddAttack(int amount) { attack += amount; }
 
+	int torchTurn = 0;          // たいまつの残りターン
+	int clairvoyanceTurn = 0;   // 千里眼の残りターン
+	void UpdateTurn() 
+	{
+		if (torchTurn > 0) torchTurn--;
+		if (clairvoyanceTurn > 0) clairvoyanceTurn--;
+	}
+
 	void ShowPickUpMessage(const char* text);
 	void DrawMessage();
 
@@ -48,7 +56,7 @@ private:
 	int maxHP;    // 最大の体力
 	int attack;   // 攻撃力
 	int PlayerGraph;
-	char pickUpText[64] = ""; // メッセージ内容
+	char pickUpText[64] = "";
 	int messageTimer = 0;
 	int level = 1;
 	int exp = 0;
@@ -58,14 +66,22 @@ private:
 
 	bool CheckCollision(int next_map_x, int next_map_y);
 
+	//レベルアップ関連処理
 	void LevelUp() 
 	{
 		exp -= nextExp;
 		level++;
-		nextExp = (int)(nextExp * 1.5f); // 次の必要経験値を増やす
-		maxHP += 10;                     // レベルアップ特典
-		hp = maxHP;                      // HP全回復
-		attack += 2;                     // 攻撃力アップ
-		ShowPickUpMessage("LEVEL UP!");  // メッセージ表示
+		nextExp = (int)(nextExp * 1.5f);
+
+		int hpUp = 5;
+		int atkUp = 2;
+
+		maxHP += hpUp;
+		hp = maxHP;
+		attack += atkUp;
+
+		char msg[128];
+		sprintf_s(msg, "LEVEL UP!  最大HP+%d  ATK+%d", hpUp, atkUp);
+		ShowPickUpMessage(msg);
 	}
 };

@@ -90,8 +90,11 @@ void Player::DrawMessage()
 {
 	if (messageTimer > 0) 
 	{
-		// ‰æ–Ê’†‰›•t‹ß‚É•\Ž¦
-		DrawString(630, 250, pickUpText, GetColor(255, 255, 0));
+		SetFontSize(32);
+
+		DrawString(550, 250, pickUpText, GetColor(255, 255, 0));
+
+		SetFontSize(16);
 		messageTimer--;
 	}
 }

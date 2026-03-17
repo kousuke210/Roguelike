@@ -64,7 +64,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 const auto& rooms = stage->GetRooms();
                 for (size_t i = 1; i < rooms.size(); i++)
                 {
-                    for (int j = 0; j < 2; j++) 
+                    for (int j = 0; j < 4; j++) 
                     {
                         E_ENEMY_TYPE randomType = (GetRand(100) < 50) ? ENEMY_SKELTON : ENEMY_SLIME;
                         Enemy* newEnemy = new Enemy(randomType);
@@ -73,7 +73,6 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                         enemies.push_back(newEnemy);
                     }
                 }
-
                 stage->UpdateCamera(player->GetMapX(), player->GetMapY());
             }
     };
@@ -188,10 +187,12 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             }
 
             // ステータス表示
+            SetFontSize(24);
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
-            DrawFormatString(500, 10, white, "ATK %d", player->GetAttack());
-            DrawFormatString(650, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)",
+            DrawFormatString(550, 10, white, "ATK %d", player->GetAttack());
+            DrawFormatString(700, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)",
                 player->GetLevel(), player->GetExp(), player->GetNextExp());
+            SetFontSize(16); 
             break;
 
         case SCENE_GAMEOVER:
