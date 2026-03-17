@@ -6,10 +6,17 @@
 #include <random>
 #include <ctime>
 
-Enemy::Enemy()
-    : map_x(0), map_y(0), stage(nullptr), hp(10) 
-{
-    EnemyGraph = LoadGraph("Assets/skelton_1.png");
+Enemy::Enemy(E_ENEMY_TYPE type) : type(type), map_x(0), map_y(0), stage(nullptr), hp(10) {
+    if (type == ENEMY_SKELTON) 
+    {
+        EnemyGraph = LoadGraph("Assets/skelton_1.png");
+        hp = 10;
+    }
+    else if (type == ENEMY_SLIME) 
+    {
+        EnemyGraph = LoadGraph("Assets/slime.png");
+        hp = 5;
+    }
 }
 
 Enemy::~Enemy()

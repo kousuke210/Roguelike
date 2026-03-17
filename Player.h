@@ -22,6 +22,17 @@ public:
 		if (hp > maxHP) hp = maxHP; // 最大値を超えないように
 	}
 
+	int GetLevel() const { return level; }
+	int GetExp() const { return exp; }
+	int GetNextExp() const { return nextExp; }
+	// 経験値を獲得し、レベルアップ判定する
+	void AddExp(int amount) {
+		exp += amount;
+		while (exp >= nextExp) {
+			LevelUp();
+		}
+	}
+
 	int GetAttack() const { return attack; }
 	void AddAttack(int amount) { attack += amount; }
 
@@ -39,8 +50,22 @@ private:
 	int PlayerGraph;
 	char pickUpText[64] = ""; // メッセージ内容
 	int messageTimer = 0;
+	int level = 1;
+	int exp = 0;
+	int nextExp = 20;
 
 	Stage* stage;
 
 	bool CheckCollision(int next_map_x, int next_map_y);
+
+	void LevelUp() 
+	{
+		exp -= nextExp;
+		level++;
+		nextExp = (int)(nextExp * 1.5f); // 次の必要経験値を増やす
+		maxHP += 10;                     // レベルアップ特典
+		hp = maxHP;                      // HP全回復
+		attack += 2;                     // 攻撃力アップ
+		ShowPickUpMessage("LEVEL UP!");  // メッセージ表示
+	}
 };

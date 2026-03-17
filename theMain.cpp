@@ -64,10 +64,14 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 const auto& rooms = stage->GetRooms();
                 for (size_t i = 1; i < rooms.size(); i++)
                 {
-                    Enemy* newEnemy = new Enemy();
-                    newEnemy->SetStage(stage);
-                    newEnemy->SetPosition(rooms[i].center_x, rooms[i].center_y);
-                    enemies.push_back(newEnemy);
+                    for (int j = 0; j < 2; j++) 
+                    {
+                        E_ENEMY_TYPE randomType = (GetRand(100) < 50) ? ENEMY_SKELTON : ENEMY_SLIME;
+                        Enemy* newEnemy = new Enemy(randomType);
+                        newEnemy->SetStage(stage);
+                        newEnemy->SetPosition(rooms[i].center_x + (j % 2), rooms[i].center_y + (j / 2));
+                        enemies.push_back(newEnemy);
+                    }
                 }
 
                 stage->UpdateCamera(player->GetMapX(), player->GetMapY());
@@ -135,6 +139,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                                 if (e->TakeDamage(player->GetAttack())) 
                                 {
                                     e->SetPosition(-100, -100);
+                                    player->AddExp(10); // 敵を倒したら経験値 10 を獲得
                                 }
                                 else {
                                     player->Heal(-5);
@@ -184,7 +189,9 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
 
             // ステータス表示
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
-            DrawFormatString(500, 10, GetColor(255, 255, 255), "ATK %d", player->GetAttack());
+            DrawFormatString(500, 10, white, "ATK %d", player->GetAttack());
+            DrawFormatString(650, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)",
+                player->GetLevel(), player->GetExp(), player->GetNextExp());
             break;
 
         case SCENE_GAMEOVER:
