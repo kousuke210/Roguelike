@@ -12,7 +12,7 @@ class Enemy
 {
 public:
 	Enemy(E_ENEMY_TYPE type);
-	~Enemy();
+	virtual ~Enemy();
 	bool Update();
 	void Draw();
 	void SetPosition(int map_x, int map_y);
@@ -20,7 +20,16 @@ public:
 	int GetMapX() const { return map_x; }
 	int GetMapY() const { return map_y; }
 
+	int GetAttack() const { return atk; }
 	int GetHP() const { return hp; }
+
+	// ステータスを設定する（階層強化用）
+	void SetStatus(int newAtk, int newHp)
+	{
+		this->atk = newAtk;
+		this->hp = newHp;
+		this->maxHp = newHp;
+	}
 	// ダメージを受け、倒されたら true を返す
 	bool TakeDamage(int damage) 
 	{
@@ -28,10 +37,18 @@ public:
 		return hp <= 0;
 	}
 
+	int GetExpValue(int floor) const 
+	{
+		// 基礎10 + (階層 * x)
+		return 10 + (floor * 2);
+	}
+
 private:
 	int map_x;
 	int map_y;
-	int hp; // 敵の体力
+	int hp;
+	int maxHp;
+	int atk;
 	E_ENEMY_TYPE type;
 
 	Stage* stage;

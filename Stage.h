@@ -48,8 +48,12 @@ public:
 	void DrawOverlayMap(int screen_width, int screen_height);
 	class ItemManager* GetItemManager() { return itemManager; }
 
-	void SpawnEnemies(std::vector<Enemy*>& enemies, int floor);
+	void AdvanceFloor() { currentFloor++; }
+	int GetCurrentFloor() const { return currentFloor; }
 
+	void SpawnEnemies(std::vector<Enemy*>& enemies);
+
+	// プレイヤーの開始位置を返す関数を追加
 	int GetStartIdxX() const { return rooms.empty() ? 1 : rooms[0].center_x; }
 	int GetStartIdxY() const { return rooms.empty() ? 1 : rooms[0].center_y; }
 
@@ -66,11 +70,16 @@ public:
 		if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) itemMapData[y][x] = 0;
 	}
 
+	int GetStairsX() const { return stairsX; }
+	int GetStairsY() const { return stairsY; }
+
+	static const int MAP_WIDTH = 64;
+	static const int MAP_HEIGHT = 36;
+	int itemMapData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
+	void SetExplored(int x, int y);
 
 private:
 	static const int TILE_SIZE = 50;
-	static const int MAP_WIDTH = 64;
-	static const int MAP_HEIGHT = 36;
 	static const int MAX_ROOMS = 20;
 	static const int MIN_ROOM_SIZE = 3;
 	static const int MAX_ROOM_SIZE = 8;
@@ -82,10 +91,12 @@ private:
 	int WallImage;
 	int StairImage;
 
+	int stairsX = -1;
+	int stairsY = -1;
+
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
 	int exploredData[MAP_HEIGHT][MAP_WIDTH] = { 0 }; 
 	int visibleData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
-	int itemMapData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 
 	std::vector<Room> rooms;
 	std::mt19937 mt;
@@ -94,10 +105,13 @@ private:
 	int camera_x = 0;
 	int camera_y = 0;
 
+	int currentFloor = 1;
+	bool isMonsterHouseFloor = false;
+
 	void InitializeMap();
 	void CreateRooms();
 	void CreateCorridors();
-	void SetExplored(int x, int y);
+	
 	void CalculateVisibleTiles(int player_map_x, int player_map_y);
 	void DrawTile(int x, int y, int type, int offset_x, int offset_y);
 

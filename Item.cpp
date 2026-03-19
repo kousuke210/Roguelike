@@ -84,6 +84,16 @@ void ItemManager::Draw(Stage* stage)
     }
 }
 
+void ItemManager::SpawnSpecificItem(Stage* stage, int x, int y, int type)
+{
+    // 指定された座標がマップ範囲内か一応チェック
+    if (x < 0 || x >= Stage::MAP_WIDTH || y < 0 || y >= Stage::MAP_HEIGHT) return;
+
+    // stage の itemMapData に種類を書き込む
+    // type 1: ATKポーション, 2: HEALポーション など、あなたの定義に合わせてください
+    stage->itemMapData[y][x] = type;
+}
+
 void ItemManager::PickUpItem(int x, int y, Player* player) 
 {
     auto it = std::find_if(items.begin(), items.end(), [x, y](const ItemData& i) 

@@ -41,6 +41,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     int clearGraph = LoadGraph("Assets/CLEAR.png");
     int overGraph = LoadGraph("Assets/OVER.png");
     int currentFloor = 1;
+    int floor = stage->GetCurrentFloor();
 
     auto InitGame = [&]()
     {
@@ -123,6 +124,20 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             player->Draw();
             player->DrawMessage();
 
+
+            if (floor > 1) 
+            {
+                // ŠK‘w‚²‚Æ‚ÉˆÃ‚³‚ðŒvŽZ (—á: 1ŠK[‚­‚È‚é‚²‚Æ‚ÉƒAƒ‹ƒtƒ@’l‚ð 10 ‘‚â‚·)
+                // floor=2 ‚Å 10, floor=10 ‚Å 90BÅ‘å‚Å‚à 180 ‚­‚ç‚¢‚É—}‚¦‚é‚ÆŒ©‚¦‚È‚­‚È‚ç‚¸‚ÉÏ‚Ý‚Ü‚·B
+                int alpha = (floor - 1) * 10;
+                if (alpha > 180) alpha = 180;
+
+                // •‚¢”¼“§–¾‚ÌŽlŠp‚ð‰æ–Ê‘S‘Ì‚É•`‰æ
+                SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+                DrawBox(0, 0, 1400, 700, GetColor(0, 0, 0), TRUE);
+                SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+            }
+
             if (!isMapOverlayVisible)
             {
                 if (isPlayerTurn)
@@ -142,12 +157,17 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                         {
                             if (e->GetHP() > 0 && nx == e->GetMapX() && ny == e->GetMapY())
                             {
-                                if (e->TakeDamage(player->GetAttack())) 
+                                if (e->TakeDamage(player->GetAttack()))
                                 {
                                     e->SetPosition(-100, -100);
-                                    player->AddExp(10); // “G‚ð“|‚µ‚½‚çŒoŒ±’l 10 ‚ðŠl“¾
+                                    int gainExp = e->GetExpValue(stage->GetCurrentFloor());
+                                    player->AddExp(gainExp);
+
+                                    // ƒƒO‚ÉŠl“¾ŒoŒ±’l‚ð•\Ž¦
+                                    std::string msg = std::to_string(gainExp) + " EXPŠl“¾";
+                                    player->ShowPickUpMessage(msg.c_str());
                                 }
-                                else 
+                                else
                                 {
                                     player->Heal(-5);
                                 }
@@ -169,16 +189,21 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                             // ŠK’i‚Ì”»’è
                             if (currentTile == TILE_STAIRS)
                             {
+                                stage->AdvanceFloor();
+
+                                std::string message = "B" + std::to_string(stage->GetCurrentFloor()) + "ŠK‚Öi‚ñ‚¾...";                                player->ShowPickUpMessage(message.c_str());
+                                player->ShowPickUpMessage(message.c_str());
+
                                 stage->GenerateMap();
 
                                 for (auto e : enemies) delete e;
                                 enemies.clear();
-
-                                // Œ»Ý‚ÌŠK‘w‚ð“n‚µ‚Ä“G‚ð¶¬
-                                stage->SpawnEnemies(enemies, currentFloor);
+                                stage->SpawnEnemies(enemies);
 
                                 player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
                                 stage->UpdateCamera(player->GetMapX(), player->GetMapY());
+
+                                stairsFoundMsg = false;
                             }
 
                             player->UpdateTurn();
@@ -198,16 +223,29 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                     scene.SetScene(SCENE_GAMEOVER);
                 }
 
-                //ƒQ[ƒ€ƒNƒŠƒAF¶‚«‚Ä‚¢‚é“G‚ª0
-                int aliveEnemyCount = 0;
+                bool anyEnemyAlive = false;
                 for (auto e : enemies) 
                 {
-                    if (e->GetHP() > 0) aliveEnemyCount++;
+                    if (e->GetHP() > 0) 
+                    {
+                        anyEnemyAlive = true;
+                        break;
+                    }
                 }
 
-                if (aliveEnemyCount == 0) 
+                static bool stairsFoundMsg = false; // ‚»‚ÌŠK‚ÅƒƒbƒZ[ƒW‚ðo‚µ‚½‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO
+
+                if (!anyEnemyAlive) 
                 {
-                    scene.SetScene(SCENE_GAMECLEAR);
+                    if (!stairsFoundMsg) 
+                    {
+                        player->ShowPickUpMessage("ƒGƒŠƒA‚Ì“G‚ðŸr–Å‚µ‚½IŠK’i‚ÌêŠ‚ª”»–¾‚µ‚½B");
+
+                        // ŠK’i‚ÌêŠ‚ð‹­§“I‚Éu’TõÏ‚Ýv‚É‚·‚é
+                        stage->SetExplored(stage->GetStairsX(), stage->GetStairsY());
+
+                        stairsFoundMsg = true;
+                    }
                 }
             }
             else
@@ -215,12 +253,13 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 stage->DrawOverlayMap(1400, 700);
             }
 
-            // ƒXƒe[ƒ^ƒX•\Ž¦
+            
             SetFontSize(24);
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
             DrawFormatString(550, 10, white, "ATK %d", player->GetAttack());
             DrawFormatString(700, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)",
                 player->GetLevel(), player->GetExp(), player->GetNextExp());
+            DrawFormatString(10, 10, GetColor(255, 255, 255), "B%dF", stage->GetCurrentFloor());
             SetFontSize(16); 
             break;
 

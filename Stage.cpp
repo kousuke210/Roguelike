@@ -191,26 +191,46 @@ void Stage::DrawOverlayMap(int sw, int sh)
 	if (player) DrawBox(sx + player->GetMapX() * SCALE - 1, sy + player->GetMapY() * SCALE - 1, sx + (player->GetMapX() + 1) * SCALE + 1, sy + (player->GetMapY() + 1) * SCALE + 1, GetColor(255, 255, 255), TRUE);
 }
 
-void Stage::SpawnEnemies(std::vector<Enemy*>& enemies, int floor) {
-	if (rooms.empty()) return;
+void Stage::SpawnEnemies(std::vector<Enemy*>& enemies) {
+	if (rooms.size() < 2) return;
+
+	// どの部屋をモンスターハウスにするか決める（プレイヤーの初期部屋 [0] 以外）
+	int mhRoomIdx = isMonsterHouseFloor ? (1 + rand() % (rooms.size() - 1)) : -1;
 
 	for (size_t i = 1; i < rooms.size(); ++i) {
-		// 階層が深いほど、敵の出現数を少しずつ増やす (例: 5階ごとに+1体)
-		int numEnemies = 2 + (floor / 5);
-
-		for (int j = 0; j < numEnemies; j++) {
-			E_ENEMY_TYPE type = (rand() % 100 < 50) ? ENEMY_SKELTON : ENEMY_SLIME;
-			Enemy* newEnemy = new Enemy(type);
-			newEnemy->SetStage(this);
-
-			// 階層に応じて敵のステータスを強化
-			// 基礎攻撃力 + (現在の階層 * 2) など
-			int bonusAtk = floor * 2;
-			int bonusHp = floor * 5;
-			newEnemy->SetStatus(newEnemy->GetAttack() + bonusAtk, newEnemy->GetHP() + bonusHp);
-
-			newEnemy->SetPosition(rooms[i].center_x + (j % 2), rooms[i].center_y + (j / 2));
-			enemies.push_back(newEnemy);
+		if (i == mhRoomIdx) {
+			// --- モンスターハウスの処理 ---
+			// 部屋の全タイルに敵を敷き詰める勢いで生成
+			for (int y = rooms[i].y; y < rooms[i].y + rooms[i].h; ++y) 
+			{
+				for (int x = rooms[i].x; x < rooms[i].x + rooms[i].w; ++x) 
+				{
+					// 60%の確率で敵を配置
+					if (rand() % 100 < 60) {
+						Enemy* e = new Enemy((rand() % 100 < 50) ? ENEMY_SKELTON : ENEMY_SLIME);
+						e->SetStage(this);
+						e->SetPosition(x, y);
+						// 階層強化
+						e->SetStatus(e->GetAttack() + (currentFloor * 2), e->GetHP() + (currentFloor * 5));
+						enemies.push_back(e);
+					}
+				}
+			}
+			// 回復アイテムを2つ置く
+			for (int k = 0; k < 2; ++k) {
+				itemManager->SpawnSpecificItem(this, rooms[i].center_x + k, rooms[i].center_y, 2); // 2: HEALポーション
+			}
+		}
+		else {
+			// 通常の敵生成（既存のロジック）
+			int num = 2 + (currentFloor / 5);
+			for (int j = 0; j < num; ++j) {
+				Enemy* e = new Enemy((rand() % 100 < 50) ? ENEMY_SKELTON : ENEMY_SLIME);
+				e->SetStage(this);
+				e->SetPosition(rooms[i].center_x + (j % 2), rooms[i].center_y + (j / 2));
+				e->SetStatus(e->GetAttack() + (currentFloor * 2), e->GetHP() + (currentFloor * 5));
+				enemies.push_back(e);
+			}
 		}
 	}
 }
@@ -220,21 +240,29 @@ void Stage::GenerateMap()
 	InitializeMap();
 	rooms.clear();
 
-	memset(exploredData, 0, sizeof(exploredData)); // 探索済みの黒い影を消す
-	memset(visibleData, 0, sizeof(visibleData));   // 現在の視界をリセット
-	memset(itemMapData, 0, sizeof(itemMapData));   // ミニマップ上のアイテム点を消す
+	// 探索データと視界のリセット
+	memset(exploredData, 0, sizeof(exploredData));
+	memset(visibleData, 0, sizeof(visibleData));
+	memset(itemMapData, 0, sizeof(itemMapData));
 
-	CreateRooms();     // 新しい部屋を作成
-	CreateCorridors(); // 新しい通路を作成
+	CreateRooms();
+	CreateCorridors();
+
+	isMonsterHouseFloor = false;
+	// 5の倍数ではなく、かつランダム（例：30%の確率）で発生
+	if (currentFloor % 5 != 0 && (rand() % 100 < 30)) 
+	{
+		isMonsterHouseFloor = true;
+	}
 
 	if (!rooms.empty())
 	{
-		// 最後の部屋の中央に階段を設置
 		const auto& exitRoom = rooms.back();
-		mapData[exitRoom.center_y][exitRoom.center_x] = TILE_STAIRS;
+		stairsX = exitRoom.center_x;
+		stairsY = exitRoom.center_y;
+		mapData[stairsY][stairsX] = TILE_STAIRS;
 	}
-
-	itemManager->SpawnItems(this); // アイテムを配置
+	itemManager->SpawnItems(this);
 }
 
 void Stage::Draw() {

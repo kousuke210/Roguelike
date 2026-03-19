@@ -29,7 +29,7 @@ public:
 
     void SpawnItems(Stage* stage);
     void Draw(Stage* stage);
-
+    void SpawnSpecificItem(Stage* stage, int x, int y, int type);
     void PickUpItem(int x, int y, Player* player);
 
 private:
