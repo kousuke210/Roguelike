@@ -1,9 +1,10 @@
 #include "DxLib.h" 
 #include "Stage.h"
+#include "Player.h"
+#include "Enemy.h"
 #include <random>
 #include <ctime> 
 #include <algorithm>
-#include "Player.h"
 #include <assert.h>
 
 using std::min;
@@ -13,7 +14,8 @@ Stage::Stage() : mt(static_cast<unsigned int>(time(NULL)))
 {
 	GroundImage = LoadGraph("Assets/tutidou.png");
 	WallImage = LoadGraph("Assets/tutikabe1.png");
-	assert(GroundImage > 0 && WallImage > 0);
+	StairImage = LoadGraph("Assets/STAIR.png");
+	assert(GroundImage > 0 && WallImage > 0 && StairImage > 0);
 	memset(exploredData, 0, sizeof(exploredData));
 	memset(visibleData, 0, sizeof(visibleData));
 	itemManager = new ItemManager();
@@ -50,7 +52,14 @@ void Stage::SetExplored(int x, int y)
 void Stage::CalculateVisibleTiles(int player_map_x, int player_map_y) 
 {
 	memset(visibleData, 0, sizeof(visibleData));
-	int sight_range = (player && player->torchTurn > 0) ? 5 : 2;
+
+	// Šî–{‚ÌŽ‹ŠE‚ð 2 ‚É‚µ‚ÄAö‚é‚Ù‚Ç‹·‚­‚È‚é
+	int baseRange = (player && player->torchTurn > 0) ? 5 : 2;
+
+	// —áF10ŠKˆÈ~‚ÍA‚½‚¢‚Ü‚Â–³‚µ‚¾‚ÆŽ‹ŠE‚ª 1 ‚É‚È‚é
+	if (currentFloor >= 10 && baseRange == 2) baseRange = 1;
+
+	int sight_range = baseRange;
 
 	for (int dy = -sight_range; dy <= sight_range; ++dy) 
 	{
@@ -74,9 +83,7 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	const float z = ZOOM_RATE;
 	const float ds = TILE_SIZE * z;
 
-	const int FOG_ALPHA = 140;   // Ž‹ŠEŠOiˆê“x’Ê‚Á‚½êŠj‚ÌˆÃ‚³
-	const int UNEXPLORED_ALPHA = 210; // –¢’TõƒGƒŠƒAiˆê“x‚às‚Á‚Ä‚¢‚È‚¢êŠj‚ÌˆÃ‚³
-
+	// ‰æ–Êã‚Ì•`‰æ”ÍˆÍil, t, r, bj
 	int l = (int)(x * ds - offset_x * z);
 	int t = (int)(y * ds - offset_y * z);
 	int r = (int)((x + 1) * ds - offset_x * z);
@@ -85,40 +92,46 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	bool isVis = IsTileVisible(x, y);
 	bool isExp = (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) && (exploredData[y][x] == 1);
 
-	if (type == TILE_FLOOR)
+	// °‚ÆŠK’i‚Ì•`‰æ
+	if (type == TILE_FLOOR || type == TILE_STAIRS)
 	{
-		// °‚ð•`‰æ
-		DrawRectGraph(l, t, 0, 0, (int)ds, (int)ds, GroundImage, TRUE, FALSE);
+		DrawRectExtendGraph(l, t, r, b, 0, 0, 64, 64, GroundImage, TRUE);
+
+		// ŠK’i‚Ìê‡‚Í‚»‚Ìã‚Éd‚Ë‚é
+		if (type == TILE_STAIRS)
+		{
+			DrawExtendGraph(l, t, r, b, StairImage, TRUE);
+		}
 	}
 	else if (type == TILE_WALL)
 	{
-		// •Ç‚ð•`‰æ
+		// •Ç‚Ì•`‰æ
 		bool adj = false;
 		if (GetTileType(x, y - 1) == TILE_FLOOR || GetTileType(x, y + 1) == TILE_FLOOR ||
 			GetTileType(x - 1, y) == TILE_FLOOR || GetTileType(x + 1, y) == TILE_FLOOR ||
 			GetTileType(x - 1, y - 1) == TILE_FLOOR || GetTileType(x + 1, y - 1) == TILE_FLOOR ||
-			GetTileType(x - 1, y + 1) == TILE_FLOOR || GetTileType(x + 1, y + 1) == TILE_FLOOR) adj = true;
+			GetTileType(x - 1, y + 1) == TILE_FLOOR || GetTileType(x + 1, y + 1) == TILE_FLOOR ||
+			GetTileType(x, y - 1) == TILE_STAIRS || GetTileType(x, y + 1) == TILE_STAIRS) adj = true;
 
 		if (adj) DrawExtendGraph(l, t, r, b, WallImage, TRUE);
 		else DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
 	}
 
-	if (isVis)
+	// Ž‹ŠE‚Ìˆ—
+	if (!isVis)
 	{
-	}
-	else if (isExp)
-	{
-		// ’TõÏ‚Ý‚¾‚ªŽ‹ŠEŠOF’†‚­‚ç‚¢‚ÌˆÃ‚³‚ðd‚Ë‚é
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, FOG_ALPHA);
-		DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-	}
-	else
-	{
-		// –¢’TõF‚©‚È‚èˆÃ‚¢•‚ðd‚Ë‚éi’nŒ`‚Í‚¤‚Á‚·‚çŒ©‚¦‚éj
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, UNEXPLORED_ALPHA);
-		DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		if (isExp)
+		{
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA, 140);
+			DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
+			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		}
+		else
+		{
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA, 210);
+			DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
+			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		}
 	}
 }
 
@@ -178,13 +191,50 @@ void Stage::DrawOverlayMap(int sw, int sh)
 	if (player) DrawBox(sx + player->GetMapX() * SCALE - 1, sy + player->GetMapY() * SCALE - 1, sx + (player->GetMapX() + 1) * SCALE + 1, sy + (player->GetMapY() + 1) * SCALE + 1, GetColor(255, 255, 255), TRUE);
 }
 
+void Stage::SpawnEnemies(std::vector<Enemy*>& enemies, int floor) {
+	if (rooms.empty()) return;
+
+	for (size_t i = 1; i < rooms.size(); ++i) {
+		// ŠK‘w‚ª[‚¢‚Ù‚ÇA“G‚ÌoŒ»”‚ð­‚µ‚¸‚Â‘‚â‚· (—á: 5ŠK‚²‚Æ‚É+1‘Ì)
+		int numEnemies = 2 + (floor / 5);
+
+		for (int j = 0; j < numEnemies; j++) {
+			E_ENEMY_TYPE type = (rand() % 100 < 50) ? ENEMY_SKELTON : ENEMY_SLIME;
+			Enemy* newEnemy = new Enemy(type);
+			newEnemy->SetStage(this);
+
+			// ŠK‘w‚É‰ž‚¶‚Ä“G‚ÌƒXƒe[ƒ^ƒX‚ð‹­‰»
+			// Šî‘bUŒ‚—Í + (Œ»Ý‚ÌŠK‘w * 2) ‚È‚Ç
+			int bonusAtk = floor * 2;
+			int bonusHp = floor * 5;
+			newEnemy->SetStatus(newEnemy->GetAttack() + bonusAtk, newEnemy->GetHP() + bonusHp);
+
+			newEnemy->SetPosition(rooms[i].center_x + (j % 2), rooms[i].center_y + (j / 2));
+			enemies.push_back(newEnemy);
+		}
+	}
+}
+
 void Stage::GenerateMap()
 {
 	InitializeMap();
 	rooms.clear();
-	CreateRooms();
-	CreateCorridors();
-	itemManager->SpawnItems(this);
+
+	memset(exploredData, 0, sizeof(exploredData)); // ’TõÏ‚Ý‚Ì•‚¢‰e‚ðÁ‚·
+	memset(visibleData, 0, sizeof(visibleData));   // Œ»Ý‚ÌŽ‹ŠE‚ðƒŠƒZƒbƒg
+	memset(itemMapData, 0, sizeof(itemMapData));   // ƒ~ƒjƒ}ƒbƒvã‚ÌƒAƒCƒeƒ€“_‚ðÁ‚·
+
+	CreateRooms();     // V‚µ‚¢•”‰®‚ðì¬
+	CreateCorridors(); // V‚µ‚¢’Ê˜H‚ðì¬
+
+	if (!rooms.empty())
+	{
+		// ÅŒã‚Ì•”‰®‚Ì’†‰›‚ÉŠK’i‚ðÝ’u
+		const auto& exitRoom = rooms.back();
+		mapData[exitRoom.center_y][exitRoom.center_x] = TILE_STAIRS;
+	}
+
+	itemManager->SpawnItems(this); // ƒAƒCƒeƒ€‚ð”z’u
 }
 
 void Stage::Draw() {

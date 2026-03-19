@@ -6,6 +6,7 @@
 #include "Item.h"
 #include "SceneManager.h"
 #include <vector>
+#include <string>
 
 int bgmHandle;
 int itemSEHandle;
@@ -26,8 +27,6 @@ void DxInit()
 
     itemSEHandle = LoadSoundMem("BGM/drink01.mp3");
     ChangeVolumeSoundMem(255, itemSEHandle);
-
-
 }
 
 int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ int n)
@@ -41,6 +40,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     int titleGraph = LoadGraph("Assets/TITLE.png");
     int clearGraph = LoadGraph("Assets/CLEAR.png");
     int overGraph = LoadGraph("Assets/OVER.png");
+    int currentFloor = 1;
 
     auto InitGame = [&]()
     {
@@ -162,9 +162,26 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                             stage->UpdateCamera(player->GetMapX(), player->GetMapY());
                             stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
 
-                            // 使用効果にターン制限のあるアイテムのターンを進める
-                            player->UpdateTurn();
+                            int px = player->GetMapX();
+                            int py = player->GetMapY();
+                            int currentTile = stage->GetTileType(px, py);
 
+                            // 階段の判定
+                            if (currentTile == TILE_STAIRS)
+                            {
+                                stage->GenerateMap();
+
+                                for (auto e : enemies) delete e;
+                                enemies.clear();
+
+                                // 現在の階層を渡して敵を生成
+                                stage->SpawnEnemies(enemies, currentFloor);
+
+                                player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
+                                stage->UpdateCamera(player->GetMapX(), player->GetMapY());
+                            }
+
+                            player->UpdateTurn();
                             isPlayerTurn = false;
                         }
                     }

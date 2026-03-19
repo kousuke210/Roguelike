@@ -3,6 +3,7 @@
 #include <random>
 #include <cstring>
 #include "Item.h"
+#include "Enemy.h"
 
 class Player;
 class ItemManager;
@@ -12,7 +13,8 @@ enum E_TILE_TYPE
 {
 	TILE_WALL,
 	TILE_FLOOR,
-	TILE_MAX
+	TILE_MAX,
+	TILE_STAIRS
 };
 
 class Stage
@@ -46,6 +48,11 @@ public:
 	void DrawOverlayMap(int screen_width, int screen_height);
 	class ItemManager* GetItemManager() { return itemManager; }
 
+	void SpawnEnemies(std::vector<Enemy*>& enemies, int floor);
+
+	int GetStartIdxX() const { return rooms.empty() ? 1 : rooms[0].center_x; }
+	int GetStartIdxY() const { return rooms.empty() ? 1 : rooms[0].center_y; }
+
 	void SetItemFound(int x, int y, int type) 
 	{
 		if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) 
@@ -73,6 +80,7 @@ private:
 
 	int GroundImage;
 	int WallImage;
+	int StairImage;
 
 	int mapData[MAP_HEIGHT][MAP_WIDTH];
 	int exploredData[MAP_HEIGHT][MAP_WIDTH] = { 0 }; 
