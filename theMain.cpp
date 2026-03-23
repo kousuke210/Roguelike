@@ -41,10 +41,11 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     int clearGraph = LoadGraph("Assets/CLEAR.png");
     int overGraph = LoadGraph("Assets/OVER.png");
     int currentFloor = 1;
-    int floor = stage->GetCurrentFloor();
+    static bool stairsFoundMsg = false; // 全滅メッセージを既に出したか
+    int enemyClearTimer = 0;            // メッセージを表示し続けるためのタイマー
 
     auto InitGame = [&]()
-    {
+        {
             player->GetMaxHP();
 
             for (auto e : enemies)
@@ -65,7 +66,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 const auto& rooms = stage->GetRooms();
                 for (size_t i = 1; i < rooms.size(); i++)
                 {
-                    for (int j = 0; j < 4; j++) 
+                    for (int j = 0; j < 4; j++)
                     {
                         E_ENEMY_TYPE randomType = (GetRand(100) < 50) ? ENEMY_SKELTON : ENEMY_SLIME;
                         Enemy* newEnemy = new Enemy(randomType);
@@ -76,7 +77,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 }
                 stage->UpdateCamera(player->GetMapX(), player->GetMapY());
             }
-    };
+        };
 
     InitGame();
 
@@ -113,7 +114,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             if (Input::IsKeyDown(KEY_INPUT_C)) scene.SetScene(SCENE_GAMECLEAR);
 
             stage->Draw();
-            for (auto e : enemies) 
+            for (auto e : enemies)
             {
                 // 千里眼の効果中なら、視界に関係なく描画する
                 if (stage->IsTileVisible(e->GetMapX(), e->GetMapY()) || player->clairvoyanceTurn > 0)
@@ -124,20 +125,6 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             player->Draw();
             player->DrawMessage();
 
-
-            if (floor > 1) 
-            {
-                // 階層ごとに暗さを計算 (例: 1階深くなるごとにアルファ値を 10 増やす)
-                // floor=2 で 10, floor=10 で 90。最大でも 180 くらいに抑えると見えなくならずに済みます。
-                int alpha = (floor - 1) * 10;
-                if (alpha > 180) alpha = 180;
-
-                // 黒い半透明の四角を画面全体に描画
-                SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
-                DrawBox(0, 0, 1400, 700, GetColor(0, 0, 0), TRUE);
-                SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-            }
-
             if (!isMapOverlayVisible)
             {
                 if (isPlayerTurn)
@@ -147,6 +134,23 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                     else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
                     else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
                     else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
+
+                    // デバッグ用：敵全滅
+                    if (CheckHitKey(KEY_INPUT_B) == 1)
+                    {
+                        for (auto e : enemies)
+                        {
+                            // まだ生きている敵がいればHPを0にし、画面外へ飛ばす
+                            if (e->GetHP() > 0)
+                            {
+                                // TakeDamageに大きな値を渡すか、HPを直接操作する
+                                // ここでは確実に倒すために 9999 ダメージを与えます
+                                e->TakeDamage(9999);
+                                e->SetPosition(-100, -100);
+                            }
+                        }
+
+                    }
 
                     if (dx != 0 || dy != 0) {
                         int nx = player->GetMapX() + dx;
@@ -160,7 +164,9 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                                 if (e->TakeDamage(player->GetAttack()))
                                 {
                                     e->SetPosition(-100, -100);
-                                    int gainExp = e->GetExpValue(stage->GetCurrentFloor());
+                                    int floor = stage->GetCurrentFloor();
+                                    int gainExp = 10 + (floor * 5);
+
                                     player->AddExp(gainExp);
 
                                     // ログに獲得経験値を表示
@@ -189,21 +195,20 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                             // 階段の判定
                             if (currentTile == TILE_STAIRS)
                             {
-                                stage->AdvanceFloor();
-
-                                std::string message = "B" + std::to_string(stage->GetCurrentFloor()) + "階へ進んだ...";                                player->ShowPickUpMessage(message.c_str());
-                                player->ShowPickUpMessage(message.c_str());
+                                stairsFoundMsg = false;
+                                enemyClearTimer = 0;
 
                                 stage->GenerateMap();
+                                stage->AdvanceFloor();
 
                                 for (auto e : enemies) delete e;
                                 enemies.clear();
+
+                                // 敵を生成
                                 stage->SpawnEnemies(enemies);
 
                                 player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
                                 stage->UpdateCamera(player->GetMapX(), player->GetMapY());
-
-                                stairsFoundMsg = false;
                             }
 
                             player->UpdateTurn();
@@ -218,33 +223,42 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 }
 
                 //ゲームオーバー：プレイヤーのHPが0以下
-                if (player->GetHP() <= 0) 
+                if (player->GetHP() <= 0)
                 {
                     scene.SetScene(SCENE_GAMEOVER);
                 }
 
                 bool anyEnemyAlive = false;
-                for (auto e : enemies) 
+                for (auto e : enemies)
                 {
-                    if (e->GetHP() > 0) 
+                    if (e->GetHP() > 0)
                     {
                         anyEnemyAlive = true;
                         break;
                     }
                 }
 
-                static bool stairsFoundMsg = false; // その階でメッセージを出したかどうかのフラグ
-
-                if (!anyEnemyAlive) 
-                {
+                if (!anyEnemyAlive) {
                     if (!stairsFoundMsg) 
-                    {
-                        player->ShowPickUpMessage("エリアの敵を殲滅した！階段の場所が判明した。");
+                    { // まだメッセージを出していないなら
+                        player->ShowPickUpMessage("敵を殲滅した！階段の場所が判明！");
 
-                        // 階段の場所を強制的に「探索済み」にする
-                        stage->SetExplored(stage->GetStairsX(), stage->GetStairsY());
+                        int sx = stage->GetStairsX();
+                        int sy = stage->GetStairsY();
+                        stage->SetExplored(sx, sy);
 
                         stairsFoundMsg = true;
+                        enemyClearTimer = 180; // 3秒タイマー
+                    }
+                }
+
+                if (enemyClearTimer > 0)
+                {
+                    enemyClearTimer--;
+                    if (enemyClearTimer == 0)
+                    {
+                        // 3秒経ったら、表示されているログを消す
+                        player->ShowPickUpMessage("");
                     }
                 }
             }
@@ -253,21 +267,21 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 stage->DrawOverlayMap(1400, 700);
             }
 
-            
+            // ステータス関連表示
             SetFontSize(24);
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
             DrawFormatString(550, 10, white, "ATK %d", player->GetAttack());
             DrawFormatString(700, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)",
                 player->GetLevel(), player->GetExp(), player->GetNextExp());
             DrawFormatString(10, 10, GetColor(255, 255, 255), "B%dF", stage->GetCurrentFloor());
-            SetFontSize(16); 
+            SetFontSize(16);
             break;
 
         case SCENE_GAMEOVER:
             if (CheckSoundMem(bgmHandle) == 1)
             {
                 StopSoundMem(bgmHandle);
-            }    
+            }
             DrawExtendGraph(0, 0, 1400, 700, overGraph, FALSE);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);
             break;
@@ -287,9 +301,9 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     }
 
     delete player;
-    for (auto e : enemies) 
-    { 
-        delete e; 
+    for (auto e : enemies)
+    {
+        delete e;
     }
     enemies.clear();
     delete stage;

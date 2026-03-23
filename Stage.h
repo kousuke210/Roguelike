@@ -70,8 +70,13 @@ public:
 		if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) itemMapData[y][x] = 0;
 	}
 
-	int GetStairsX() const { return stairsX; }
-	int GetStairsY() const { return stairsY; }
+	int GetStairsX() const {
+		// rooms‚ÌÅŒã‚Ì•”‰®‚Ì’†‰›‚ÉŠK’i‚ª‚ ‚é‘O’ñ
+		return rooms.empty() ? 0 : rooms.back().center_x;
+	}
+	int GetStairsY() const {
+		return rooms.empty() ? 0 : rooms.back().center_y;
+	}
 
 	static const int MAP_WIDTH = 64;
 	static const int MAP_HEIGHT = 36;
