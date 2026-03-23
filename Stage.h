@@ -55,8 +55,8 @@ public:
 	void SpawnEnemies(std::vector<Enemy*>& enemies);
 
 	// プレイヤーの開始位置を返す関数を追加
-	int GetStartIdxX() const { return rooms.empty() ? 1 : rooms[0].center_x; }
-	int GetStartIdxY() const { return rooms.empty() ? 1 : rooms[0].center_y; }
+	int GetStartIdxX() const { return rooms.empty() ? 0 : rooms[0].center_x; }
+	int GetStartIdxY() const { return rooms.empty() ? 0 : rooms[0].center_y; }
 
 	void SetItemFound(int x, int y, int type) 
 	{
@@ -117,10 +117,10 @@ private:
 	void InitializeMap();
 	void CreateRooms();
 	void CreateCorridors();
-	
+	void CreateBossFloor();
+
 	void CalculateVisibleTiles(int player_map_x, int player_map_y);
 	void DrawTile(int x, int y, int type, int offset_x, int offset_y);
-	void CreateBossFloor();
 
 	class ItemManager* itemManager = nullptr;
 };

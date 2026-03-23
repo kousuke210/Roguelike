@@ -136,20 +136,17 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                     else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
 
                     // デバッグ用：敵全滅
-                    if (CheckHitKey(KEY_INPUT_B) == 1)
+                    if (Input::IsKeyDown(KEY_INPUT_B) == 1)
                     {
-                        for (auto e : enemies)
-                        {
-                            // まだ生きている敵がいればHPを0にし、画面外へ飛ばす
-                            if (e->GetHP() > 0)
-                            {
-                                // TakeDamageに大きな値を渡すか、HPを直接操作する
-                                // ここでは確実に倒すために 9999 ダメージを与えます
-                                e->TakeDamage(9999);
-                                e->SetPosition(-100, -100);
-                            }
-                        }
+                        stage->AdvanceFloor();
+                        stage->GenerateMap();
 
+                        // 敵新しく
+                        for (auto e : enemies) delete e;
+                        enemies.clear();
+                        stage->SpawnEnemies(enemies);
+
+                        player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
                     }
 
                     if (dx != 0 || dy != 0) {

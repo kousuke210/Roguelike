@@ -118,18 +118,14 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 		else DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
 	}
 
+
 	// 視界の処理
 	if (!isVis)
 	{
-		if (isExp)
+		if (currentFloor % 5 != 0 && !IsTileVisible(x, y))
 		{
-			SetDrawBlendMode(DX_BLENDMODE_ALPHA, 140);
-			DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
-			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
-		}
-		else
-		{
-			SetDrawBlendMode(DX_BLENDMODE_ALPHA, 210);
+			// 探索済みなら少し暗く(140)、未探索ならもっと暗く(210)
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA, (exploredData[y][x]) ? 140 : 210);
 			DrawBox(l, t, r, b, GetColor(0, 0, 0), TRUE);
 			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 		}
@@ -249,29 +245,24 @@ void Stage::SpawnEnemies(std::vector<Enemy*>& enemies)
 
 
 
-void Stage::GenerateMap()
+void Stage::GenerateMap() 
 {
-	// 既存のリセット処理
 	InitializeMap();
 	rooms.clear();
 	memset(exploredData, 0, sizeof(exploredData));
 	memset(visibleData, 0, sizeof(visibleData));
 	memset(itemMapData, 0, sizeof(itemMapData));
 
-	// --- 【ここを修正】階数によって生成方法を変える ---
-	if (currentFloor % 5 == 0)
+	if (currentFloor > 0 && currentFloor % 5 == 0) 
 	{
-		// 5, 10, 15...階はボス専用フロア
-		CreateBossFloor();
+		CreateBossFloor(); // 5, 10...階用の固定マップ
 	}
-	else
+	else 
 	{
-		// それ以外はいつものランダム生成
 		CreateRooms();
 		CreateCorridors();
 
-		// いつもの階段設置
-		if (!rooms.empty())
+		if (!rooms.empty()) 
 		{
 			const auto& exitRoom = rooms.back();
 			stairsX = exitRoom.center_x;
@@ -280,7 +271,6 @@ void Stage::GenerateMap()
 		}
 	}
 
-	// アイテム生成（itemMapDataへの書き込み）
 	itemManager->SpawnItems(this);
 }
 
@@ -327,11 +317,10 @@ void Stage::CreateCorridors()
 	}
 }
 
-void Stage::CreateBossFloor()
+void Stage::CreateBossFloor() 
 {
-	// 1. 準備室（プレイヤー開始地点）を左側に配置
 	Room prepRoom;
-	prepRoom.x = 5;
+	prepRoom.x = 10;
 	prepRoom.y = MAP_HEIGHT / 2 - 3;
 	prepRoom.w = 6;
 	prepRoom.h = 6;
@@ -339,34 +328,61 @@ void Stage::CreateBossFloor()
 	prepRoom.center_y = prepRoom.y + prepRoom.h / 2;
 	rooms.push_back(prepRoom);
 
-	// 2. ボス部屋（大部屋）を右側に配置
 	Room bossRoom;
 	bossRoom.w = 16;
 	bossRoom.h = 16;
-	bossRoom.x = MAP_WIDTH - bossRoom.w - 5;
+	bossRoom.x = MAP_WIDTH - bossRoom.w - 10;
 	bossRoom.y = MAP_HEIGHT / 2 - bossRoom.h / 2;
 	bossRoom.center_x = bossRoom.x + bossRoom.w / 2;
 	bossRoom.center_y = bossRoom.y + bossRoom.h / 2;
-	rooms.push_back(bossRoom);
+	rooms.push_back(bossRoom); // これが 1 番
 
-	// 床を掘る
-	for (const auto& r : rooms) {
-		for (int y = r.y; y < r.y + r.h; y++) {
-			for (int x = r.x; x < r.x + r.w; x++) {
+	// マップに床を描く
+	for (const auto& r : rooms) 
+	{
+		for (int y = r.y; y < r.y + r.h; y++) 
+		{
+			for (int x = r.x; x < r.x + r.w; x++) 
+			{
 				mapData[y][x] = TILE_FLOOR;
 			}
 		}
 	}
 
-	// 3. 二つの部屋を一本の通路でつなぐ
-	for (int x = prepRoom.x + prepRoom.w; x < bossRoom.x; x++) {
+	for (int x = prepRoom.x + prepRoom.w; x < bossRoom.x; x++) 
+	{
 		mapData[prepRoom.center_y][x] = TILE_FLOOR;
 	}
 
-	// 準備室に回復薬を置く (type 2)
+	// 準備室にポーションを置く
 	itemManager->SpawnSpecificItem(this, prepRoom.center_x + 1, prepRoom.center_y, 2);
 
-	// 階段の座標だけ決めておく（タイルは置かない＝倒した後に置く用）
+	// 階段の座標をボス部屋の中央に（タイルはまだ置かない）
 	stairsX = bossRoom.center_x;
 	stairsY = bossRoom.center_y;
+
+	// ボス階は最初から全マップ見えてもいいなら以下を追加（デバッグも楽です）
+	for (int y = 0; y < MAP_HEIGHT; y++) 
+	{
+		for (int x = 0; x < MAP_WIDTH; x++) 
+		{
+			exploredData[y][x] = 1;
+		}
+	}
+
+	if (rooms.size() >= 2) 
+	{
+		const auto& bossRoom = rooms[1];
+		for (int y = bossRoom.y; y < bossRoom.y + bossRoom.h; y++) 
+		{
+			for (int x = bossRoom.x; x < bossRoom.x + bossRoom.w; x++) 
+			{
+				if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT)
+				{
+					exploredData[y][x] = 1; // 探索済みにする
+					visibleData[y][x] = 1; 
+				}
+			}
+		}
+	}
 }
