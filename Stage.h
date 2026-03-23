@@ -28,7 +28,8 @@ public:
 
 	int GetTileType(int x, int y) const;
 
-	struct Room {
+	struct Room 
+	{
 		int x; int y; int w; int h;
 		int center_x; int center_y;
 	};
@@ -110,7 +111,7 @@ private:
 	int camera_x = 0;
 	int camera_y = 0;
 
-	int currentFloor = 1;
+	int currentFloor = 4;
 	bool isMonsterHouseFloor = false;
 
 	void InitializeMap();
@@ -119,6 +120,7 @@ private:
 	
 	void CalculateVisibleTiles(int player_map_x, int player_map_y);
 	void DrawTile(int x, int y, int type, int offset_x, int offset_y);
+	void CreateBossFloor();
 
 	class ItemManager* itemManager = nullptr;
 };

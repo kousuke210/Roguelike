@@ -2,6 +2,7 @@
 #include "Stage.h"
 #include "Player.h"
 #include "Enemy.h"
+#include "Golem.h"
 #include <random>
 #include <ctime> 
 #include <algorithm>
@@ -191,8 +192,19 @@ void Stage::DrawOverlayMap(int sw, int sh)
 	if (player) DrawBox(sx + player->GetMapX() * SCALE - 1, sy + player->GetMapY() * SCALE - 1, sx + (player->GetMapX() + 1) * SCALE + 1, sy + (player->GetMapY() + 1) * SCALE + 1, GetColor(255, 255, 255), TRUE);
 }
 
-void Stage::SpawnEnemies(std::vector<Enemy*>& enemies) {
-	if (rooms.size() < 2) return;
+void Stage::SpawnEnemies(std::vector<Enemy*>& enemies)
+{
+	if (rooms.empty()) return;
+
+	if (currentFloor % 5 == 0)
+	{
+		// ボス部屋の中央にゴーレム召喚
+		Golem* boss = new Golem();
+		boss->SetStage(this);
+		boss->SetPosition(rooms[1].center_x, rooms[1].center_y);
+		enemies.push_back(boss);
+		return; // ザコは出さない
+	}
 
 	// どの部屋をモンスターハウスにするか決める（プレイヤーの初期部屋 [0] 以外）
 	int mhRoomIdx = isMonsterHouseFloor ? (1 + rand() % (rooms.size() - 1)) : -1;
@@ -235,33 +247,40 @@ void Stage::SpawnEnemies(std::vector<Enemy*>& enemies) {
 	}
 }
 
+
+
 void Stage::GenerateMap()
 {
+	// 既存のリセット処理
 	InitializeMap();
 	rooms.clear();
-
-	// 探索データと視界のリセット
 	memset(exploredData, 0, sizeof(exploredData));
 	memset(visibleData, 0, sizeof(visibleData));
 	memset(itemMapData, 0, sizeof(itemMapData));
 
-	CreateRooms();
-	CreateCorridors();
-
-	isMonsterHouseFloor = false;
-	// 5の倍数ではなく、かつランダム（例：30%の確率）で発生
-	if (currentFloor % 5 != 0 && (rand() % 100 < 30)) 
+	// --- 【ここを修正】階数によって生成方法を変える ---
+	if (currentFloor % 5 == 0)
 	{
-		isMonsterHouseFloor = true;
+		// 5, 10, 15...階はボス専用フロア
+		CreateBossFloor();
+	}
+	else
+	{
+		// それ以外はいつものランダム生成
+		CreateRooms();
+		CreateCorridors();
+
+		// いつもの階段設置
+		if (!rooms.empty())
+		{
+			const auto& exitRoom = rooms.back();
+			stairsX = exitRoom.center_x;
+			stairsY = exitRoom.center_y;
+			mapData[stairsY][stairsX] = TILE_STAIRS;
+		}
 	}
 
-	if (!rooms.empty())
-	{
-		const auto& exitRoom = rooms.back();
-		stairsX = exitRoom.center_x;
-		stairsY = exitRoom.center_y;
-		mapData[stairsY][stairsX] = TILE_STAIRS;
-	}
+	// アイテム生成（itemMapDataへの書き込み）
 	itemManager->SpawnItems(this);
 }
 
@@ -306,4 +325,48 @@ void Stage::CreateCorridors()
 		for (int x = min(x1, x2); x <= max(x1, x2); ++x) mapData[y1][x] = TILE_FLOOR;
 		for (int y = min(y1, y2); y <= max(y1, y2); ++y) mapData[y][x2] = TILE_FLOOR;
 	}
+}
+
+void Stage::CreateBossFloor()
+{
+	// 1. 準備室（プレイヤー開始地点）を左側に配置
+	Room prepRoom;
+	prepRoom.x = 5;
+	prepRoom.y = MAP_HEIGHT / 2 - 3;
+	prepRoom.w = 6;
+	prepRoom.h = 6;
+	prepRoom.center_x = prepRoom.x + prepRoom.w / 2;
+	prepRoom.center_y = prepRoom.y + prepRoom.h / 2;
+	rooms.push_back(prepRoom);
+
+	// 2. ボス部屋（大部屋）を右側に配置
+	Room bossRoom;
+	bossRoom.w = 16;
+	bossRoom.h = 16;
+	bossRoom.x = MAP_WIDTH - bossRoom.w - 5;
+	bossRoom.y = MAP_HEIGHT / 2 - bossRoom.h / 2;
+	bossRoom.center_x = bossRoom.x + bossRoom.w / 2;
+	bossRoom.center_y = bossRoom.y + bossRoom.h / 2;
+	rooms.push_back(bossRoom);
+
+	// 床を掘る
+	for (const auto& r : rooms) {
+		for (int y = r.y; y < r.y + r.h; y++) {
+			for (int x = r.x; x < r.x + r.w; x++) {
+				mapData[y][x] = TILE_FLOOR;
+			}
+		}
+	}
+
+	// 3. 二つの部屋を一本の通路でつなぐ
+	for (int x = prepRoom.x + prepRoom.w; x < bossRoom.x; x++) {
+		mapData[prepRoom.center_y][x] = TILE_FLOOR;
+	}
+
+	// 準備室に回復薬を置く (type 2)
+	itemManager->SpawnSpecificItem(this, prepRoom.center_x + 1, prepRoom.center_y, 2);
+
+	// 階段の座標だけ決めておく（タイルは置かない＝倒した後に置く用）
+	stairsX = bossRoom.center_x;
+	stairsY = bossRoom.center_y;
 }
