@@ -6,17 +6,12 @@ Golem::Golem()
     bossImage = LoadGraph("Assets/Golem.png");
     sizeRatio = 2.5f;
 
-    // ゴーレムの初期ステータス
-    hp = 150;
-    maxHp = 150;
-    atk = 25;
+    hp = 100;
+    maxHp = 100;
+    atk = 15;
 }
 
 Golem::~Golem()
 {
-}
-
-bool Golem::Update()
-{
-    return Boss::Update();
+    if (bossImage != -1) DeleteGraph(bossImage);
 }

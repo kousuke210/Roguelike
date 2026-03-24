@@ -135,18 +135,21 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                     else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
                     else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
 
-                    // デバッグ用：敵全滅
-                    if (Input::IsKeyDown(KEY_INPUT_B) == 1)
+                    if (CheckHitKey(KEY_INPUT_B) == 1)
                     {
-                        stage->AdvanceFloor();
-                        stage->GenerateMap();
+                        // Stageから階段の座標を取得
+                        int sx = stage->GetStairsX();
+                        int sy = stage->GetStairsY();
 
-                        // 敵新しく
-                        for (auto e : enemies) delete e;
-                        enemies.clear();
-                        stage->SpawnEnemies(enemies);
+                        // 階段の地点を「探索済み」フラグに書き換える
+                        stage->SetExplored(sx, sy);
 
-                        player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
+                        // プレイヤーにメッセージを表示
+                        player->ShowPickUpMessage("DEBUG: 階段の場所を感知した！");
+
+                        // 階段を発見したフラグを立てる（殲滅時と同じ演出にする場合）
+                        stairsFoundMsg = true;
+                        enemyClearTimer = 180;
                     }
 
                     if (dx != 0 || dy != 0) {

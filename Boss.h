@@ -9,6 +9,6 @@ public:
     void Draw() override;
 
 protected:
-    int bossImage;    // ボス専用の画像
-    float sizeRatio;  // サイズ倍率（2.0なら2倍の大きさ）
+    int bossImage;
+    float sizeRatio;  // サイズ倍率
 };

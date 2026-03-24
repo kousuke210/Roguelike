@@ -2,6 +2,7 @@
 #include "DxLib.h"
 #include "Stage.h"
 #include "Player.h"
+#include <cmath>
 
 Boss::Boss() : Enemy(ENEMY_MAX)
 {
@@ -11,9 +12,9 @@ Boss::Boss() : Enemy(ENEMY_MAX)
 
 Boss::~Boss()
 {
-    if (bossImage != -1) DeleteGraph(bossImage);
 }
 
+// 常に描画するためのDraw
 void Boss::Draw()
 {
     if (hp <= 0 || bossImage == -1 || !stage) return;
@@ -33,10 +34,11 @@ bool Boss::Update()
     Player* player = stage->GetPlayer();
     if (!player) return false;
 
+    // プレイヤーとの距離を計算
     int dx = abs(map_x - player->GetMapX());
     int dy = abs(map_y - player->GetMapY());
 
-    if (dx > 5 || dy > 5)
+    if (dx > 6 || dy > 6)
     {
         return false;
     }

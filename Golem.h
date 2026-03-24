@@ -7,5 +7,5 @@ public:
     virtual ~Golem();
 
     // ƒS[ƒŒƒ€“Æ©‚ÌUŒ‚ƒ‹[ƒ`ƒ“‚ğ‚±‚±‚É‘‚­
-    bool Update() override;
+    //bool Update() override;
 };
