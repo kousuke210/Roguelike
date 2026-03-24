@@ -1,4 +1,5 @@
 #pragma once
+#include "Stage.h"
 
 class Stage;
 
@@ -54,9 +55,13 @@ public:
 		// ç—¢Šá
 		if (clairvoyanceTurn > 0) 
 		{
-			if (--clairvoyanceTurn == 0) 
+			if (stage->GetCurrentFloor() % 5 != 0) 
 			{
-				this->ShowPickUpMessage("ç—¢Šá‚ÌŒø‰Ê‚ªØ‚ê‚½I");
+				clairvoyanceTurn--;
+				if (clairvoyanceTurn <= 0) 
+				{
+					ShowPickUpMessage("ç—¢Šá‚ÌŒø‰Ê‚ªØ‚ê‚½I");
+				}
 			}
 		}
 	}

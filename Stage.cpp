@@ -255,7 +255,7 @@ void Stage::GenerateMap()
 
 	if (currentFloor > 0 && currentFloor % 5 == 0) 
 	{
-		CreateBossFloor(); // 5, 10...階用の固定マップ
+		CreateBossFloor(); // 5の倍数のボスフロア用の固定マップ
 	}
 	else 
 	{

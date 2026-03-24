@@ -116,6 +116,10 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             stage->Draw();
             for (auto e : enemies)
             {
+                if (stage->GetCurrentFloor() % 5 == 0)
+                {
+                    player->clairvoyanceTurn = 2;
+                }
                 // ç—¢Šá‚ÌŒø‰Ê’†‚È‚çAŽ‹ŠE‚ÉŠÖŒW‚È‚­•`‰æ‚·‚é
                 if (stage->IsTileVisible(e->GetMapX(), e->GetMapY()) || player->clairvoyanceTurn > 0)
                 {
@@ -193,22 +197,17 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                             int currentTile = stage->GetTileType(px, py);
 
                             // ŠK’i‚Ì”»’è
-                            if (currentTile == TILE_STAIRS)
+                            if (stage->GetTileType(player->GetMapX(), player->GetMapY()) == TILE_STAIRS)
                             {
-                                stairsFoundMsg = false;
-                                enemyClearTimer = 0;
-
-                                stage->GenerateMap();
                                 stage->AdvanceFloor();
+                                stage->GenerateMap();
 
                                 for (auto e : enemies) delete e;
                                 enemies.clear();
-
-                                // “G‚ð¶¬
                                 stage->SpawnEnemies(enemies);
 
                                 player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
-                                stage->UpdateCamera(player->GetMapX(), player->GetMapY());
+                                player->ShowPickUpMessage("ŠK’i‚ð‰º‚è‚½...");
                             }
 
                             player->UpdateTurn();

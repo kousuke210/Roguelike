@@ -88,8 +88,10 @@ void Enemy::Draw()
 
     Player* p = stage->GetPlayer();
     bool isClairvoyance = (p && p->clairvoyanceTurn > 0);
-
     if (!stage->IsTileVisible(map_x, map_y) && !isClairvoyance) return;
+
+    int floor = stage->GetCurrentFloor();
+    if (floor > 0 && floor % 5 == 0) return;
 
     if (EnemyGraph == -1) return;
 

@@ -14,7 +14,6 @@ Boss::~Boss()
 {
 }
 
-// èÌÇ…ï`âÊÇ∑ÇÈÇΩÇﬂÇÃDraw
 void Boss::Draw()
 {
     if (hp <= 0 || bossImage == -1 || !stage) return;
