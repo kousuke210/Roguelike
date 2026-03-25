@@ -47,9 +47,11 @@ public:
 protected:
 	int map_x;
 	int map_y;
+
 	int hp;
 	int maxHp;
 	int atk;
+
 	E_ENEMY_TYPE type;
 	Stage* stage;
 

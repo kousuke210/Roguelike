@@ -11,13 +11,13 @@ Enemy::Enemy(E_ENEMY_TYPE type) : type(type), map_x(0), map_y(0), stage(nullptr)
     {
         EnemyGraph = LoadGraph("Assets/skelton_1.png");
         hp = 15;
-        atk = 8;
+        atk = 5;
     }
     else if (type == ENEMY_SLIME)
     {
         EnemyGraph = LoadGraph("Assets/slime.png");
         hp = 8;
-        atk = 4;
+        atk = 3;
     }
 }
 
@@ -38,7 +38,20 @@ void Enemy::SetPosition(int map_x, int map_y)
 bool Enemy::CheckCollision(int next_map_x, int next_map_y)
 {
     if (!stage) return true;
+
     if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
+
+    // 敵同士の重なり判定
+    for (auto other : stage->GetEnemies())
+    {
+        if (other == this) continue;
+        if (other->GetHP() <= 0) continue;
+
+        if (other->GetMapX() == next_map_x && other->GetMapY() == next_map_y)
+        {
+            return true;
+        }
+    }
 
     return false;
 }
@@ -52,7 +65,7 @@ bool Enemy::Update()
     int px = player->GetMapX();
     int py = player->GetMapY();
     int floor = stage->GetCurrentFloor();
-    bool acted = false;
+    bool acted = false; // このターンすでに行動したか
 
     int diffX = px - map_x;
     int diffY = py - map_y;
@@ -108,7 +121,7 @@ bool Enemy::Update()
     if (!acted)
     {
         static std::mt19937 mt(static_cast<unsigned int>(time(NULL)));
-        std::uniform_int_distribution<int> dir_dist(0, 4);
+        std::uniform_int_distribution<int> dir_dist(0, 4); // 0は待機
         int dir = dir_dist(mt);
 
         int dx = 0, dy = 0;
@@ -127,7 +140,6 @@ bool Enemy::Update()
 
     return acted;
 }
-
 void Enemy::Draw()
 {
     if (!stage) return;

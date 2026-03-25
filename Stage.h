@@ -53,6 +53,7 @@ public:
 	int GetCurrentFloor() const { return currentFloor; }
 
 	void SpawnEnemies(std::vector<Enemy*>& enemies);
+	const std::vector<Enemy*>& GetEnemies() const { return enemies; }
 
 	// プレイヤーの開始位置を返す関数を追加
 	int GetStartIdxX() const { return rooms.empty() ? 0 : rooms[0].center_x; }
@@ -83,7 +84,7 @@ public:
 	static const int MAP_HEIGHT = 36;
 	int itemMapData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 	void SetExplored(int x, int y);
-	void ResetFloor() { currentFloor = 4; }
+	void ResetFloor() { currentFloor = 1; }
 
 private:
 	static const int TILE_SIZE = 50;
@@ -108,11 +109,12 @@ private:
 	std::vector<Room> rooms;
 	std::mt19937 mt;
 	Player* player = nullptr;
+	std::vector<Enemy*> enemies;
 
 	int camera_x = 0;
 	int camera_y = 0;
 
-	int currentFloor = 4;
+	int currentFloor = 1;
 	bool isMonsterHouseFloor = false;
 
 	void InitializeMap();

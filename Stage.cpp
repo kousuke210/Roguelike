@@ -158,22 +158,28 @@ void Stage::UpdateCamera(int px, int py)
 		for (int x = 0; x < MAP_WIDTH; ++x) if (visibleData[y][x]) SetExplored(x, y);
 }
 
-void Stage::DrawOverlayMap(int sw, int sh) 
+void Stage::DrawOverlayMap(int sw, int sh)
 {
 	const int SCALE = 8;
 	int sx = (sw - MAP_WIDTH * SCALE) / 2;
 	int sy = (sh - MAP_HEIGHT * SCALE) / 2;
 
-	for (int y = 0; y < MAP_HEIGHT; ++y) 
+	for (int y = 0; y < MAP_HEIGHT; ++y)
 	{
-		for (int x = 0; x < MAP_WIDTH; ++x) 
+		for (int x = 0; x < MAP_WIDTH; ++x)
 		{
-			// 探索済みの床や壁を描画
-			if (exploredData[y][x]) 
+			if (exploredData[y][x])
 			{
-				int c = (mapData[y][x] == TILE_FLOOR) ? GetColor(50, 50, 200) : GetColor(100, 100, 100);
+				int c = (mapData[y][x] == TILE_FLOOR || mapData[y][x] == TILE_STAIRS) ? GetColor(50, 50, 200) : GetColor(100, 100, 100);
 				DrawBox(sx + x * SCALE, sy + y * SCALE, sx + (x + 1) * SCALE, sy + (y + 1) * SCALE, c, TRUE);
 
+				if (mapData[y][x] == TILE_STAIRS)
+				{
+					DrawBox(sx + x * SCALE, sy + y * SCALE, sx + (x + 1) * SCALE, sy + (y + 1) * SCALE, GetColor(0, 255, 255), TRUE);
+					DrawBox(sx + x * SCALE, sy + y * SCALE, sx + (x + 1) * SCALE, sy + (y + 1) * SCALE, GetColor(255, 255, 0), FALSE);
+				}
+
+				// アイテムの表示
 				if (itemMapData[y][x] == 1) // ATKポーション(赤)
 				{
 					DrawBox(sx + x * SCALE + 1, sy + y * SCALE + 1, sx + (x + 1) * SCALE - 1, sy + (y + 1) * SCALE - 1, GetColor(255, 0, 0), TRUE);
@@ -194,53 +200,67 @@ void Stage::SpawnEnemies(std::vector<Enemy*>& enemies)
 
 	if (currentFloor % 5 == 0)
 	{
-		// ボス部屋の中央にゴーレム召喚
 		Golem* boss = new Golem();
 		boss->SetStage(this);
 		boss->SetPosition(rooms[1].center_x, rooms[1].center_y);
 		enemies.push_back(boss);
-		return; // ザコは出さない
+
+		this->enemies = enemies;
+		return;
 	}
 
-	// どの部屋をモンスターハウスにするか決める（プレイヤーの初期部屋 [0] 以外）
 	int mhRoomIdx = isMonsterHouseFloor ? (1 + rand() % (rooms.size() - 1)) : -1;
 
-	for (size_t i = 1; i < rooms.size(); ++i) {
-		if (i == mhRoomIdx) {
-			// --- モンスターハウスの処理 ---
-			// 部屋の全タイルに敵を敷き詰める勢いで生成
-			for (int y = rooms[i].y; y < rooms[i].y + rooms[i].h; ++y) 
+	for (size_t i = 1; i < rooms.size(); ++i)
+	{
+		float atkMult = (i == mhRoomIdx) ? 0.5f : 1.0f;
+		float hpMult = (i == mhRoomIdx) ? 1.5f : 1.0f;
+
+		if (i == mhRoomIdx)
+		{
+			for (int y = rooms[i].y; y < rooms[i].y + rooms[i].h; ++y)
 			{
-				for (int x = rooms[i].x; x < rooms[i].x + rooms[i].w; ++x) 
+				for (int x = rooms[i].x; x < rooms[i].x + rooms[i].w; ++x)
 				{
-					// 60%の確率で敵を配置
 					if (rand() % 100 < 60) {
 						Enemy* e = new Enemy((rand() % 100 < 50) ? ENEMY_SKELTON : ENEMY_SLIME);
 						e->SetStage(this);
 						e->SetPosition(x, y);
-						// 階層強化
-						e->SetStatus(e->GetAttack() + (currentFloor * 2), e->GetHP() + (currentFloor * 5));
+
+						// 階層強化の適用
+						int bonusAtk = (int)(currentFloor * atkMult);
+						int bonusHp = (int)(currentFloor * hpMult);
+						e->SetStatus(e->GetAttack() + bonusAtk, e->GetHP() + bonusHp);
+
 						enemies.push_back(e);
 					}
 				}
 			}
-			// 回復アイテムを2つ置く
 			for (int k = 0; k < 2; ++k) {
-				itemManager->SpawnSpecificItem(this, rooms[i].center_x + k, rooms[i].center_y, 2); // 2: HEALポーション
+				itemManager->SpawnSpecificItem(this, rooms[i].center_x + k, rooms[i].center_y, 2);
 			}
 		}
-		else {
-			// 通常の敵生成（既存のロジック）
-			int num = 2 + (currentFloor / 5);
-			for (int j = 0; j < num; ++j) {
+		else
+		{
+			int num = 2 + (currentFloor / 5); // 階層が深いほど数が増える
+			for (int j = 0; j < num; ++j)
+			{
 				Enemy* e = new Enemy((rand() % 100 < 50) ? ENEMY_SKELTON : ENEMY_SLIME);
 				e->SetStage(this);
-				e->SetPosition(rooms[i].center_x + (j % 2), rooms[i].center_y + (j / 2));
-				e->SetStatus(e->GetAttack() + (currentFloor * 2), e->GetHP() + (currentFloor * 5));
+
+				int spawnX = rooms[i].center_x + (j % 2);
+				int spawnY = rooms[i].center_y + (j / 2);
+				e->SetPosition(spawnX, spawnY);
+
+				int bonusAtk = (int)(currentFloor * atkMult);
+				int bonusHp = (int)(currentFloor * hpMult);
+				e->SetStatus(e->GetAttack() + bonusAtk, e->GetHP() + bonusHp);
+
 				enemies.push_back(e);
 			}
 		}
 	}
+	this->enemies = enemies;
 }
 
 
