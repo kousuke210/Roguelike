@@ -1,27 +1,29 @@
 #include "DxLib.h"
 #include "Enemy.h"
 #include "Player.h"
-#include <cmath>
 #include "Stage.h"
+#include <cmath>
 #include <random>
 #include <ctime>
 
-Enemy::Enemy(E_ENEMY_TYPE type) : type(type), map_x(0), map_y(0), stage(nullptr), hp(10) {
-    if (type == ENEMY_SKELTON) 
+Enemy::Enemy(E_ENEMY_TYPE type) : type(type), map_x(0), map_y(0), stage(nullptr), hp(10), EnemyGraph(-1), atk(5) {
+    if (type == ENEMY_SKELTON)
     {
         EnemyGraph = LoadGraph("Assets/skelton_1.png");
-        hp = 10;
+        hp = 15;
+        atk = 8;
     }
-    else if (type == ENEMY_SLIME) 
+    else if (type == ENEMY_SLIME)
     {
         EnemyGraph = LoadGraph("Assets/slime.png");
-        hp = 5;
+        hp = 8;
+        atk = 4;
     }
 }
 
 Enemy::~Enemy()
 {
-    if (EnemyGraph != -1) 
+    if (EnemyGraph != -1)
     {
         DeleteGraph(EnemyGraph);
     }
@@ -33,52 +35,96 @@ void Enemy::SetPosition(int map_x, int map_y)
     this->map_y = map_y;
 }
 
-bool Enemy::CheckCollision(int next_map_x, int next_map_y) 
+bool Enemy::CheckCollision(int next_map_x, int next_map_y)
 {
     if (!stage) return true;
     if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
-
-    // ƒvƒŒƒCƒ„[‚Æ‚ÌÕ“Ë
-    Player* p = stage->GetPlayer();
-    if (p && next_map_x == p->GetMapX() && next_map_y == p->GetMapY()) return true;
 
     return false;
 }
 
 bool Enemy::Update()
 {
-    if (hp <= 0 || map_x < 0)
-    {
-        return true;
-    }
+    if (!stage) return false;
+    Player* player = stage->GetPlayer();
+    if (!player) return false;
+
+    int px = player->GetMapX();
+    int py = player->GetMapY();
+    int floor = stage->GetCurrentFloor();
     bool acted = false;
-    const int num_directions = 5;
-    const int dir_coords[num_directions][2] = { {0,0}, {0,-1}, {0,1}, {-1,0}, {1,0} };
-    static std::mt19937 mt(static_cast<unsigned int>(time(NULL)));
-    std::uniform_int_distribution<> dir_dist(0, num_directions - 1);
 
-    int random_dir_index = dir_dist(mt);
-    int dx = dir_coords[random_dir_index][0];
-    int dy = dir_coords[random_dir_index][1];
+    int diffX = px - map_x;
+    int diffY = py - map_y;
+    int dist = abs(diffX) + abs(diffY);
 
-    if (dx != 0 || dy != 0)
+    if (dist <= 8)
     {
-        int next_map_x = map_x + dx;
-        int next_map_y = map_y + dy;
+        bool canAttack = false;
 
-        Player* player = stage->GetPlayer();
-        if (player && next_map_x == player->GetMapX() && next_map_y == player->GetMapY())
+        if (floor % 5 == 0)
         {
-            player->Heal(-5);
+            if ((diffX == 0 || diffX == 1) && (diffY == 0 || diffY == 1)) canAttack = true;
+        }
+        else
+        {
+            if (dist == 1) canAttack = true;
+        }
+
+        if (canAttack)
+        {
+            player->Heal(-atk);
             acted = true;
         }
-        else if (!CheckCollision(next_map_x, next_map_y))
+        else
         {
-            map_x = next_map_x;
-            map_y = next_map_y;
+            int dx = 0;
+            int dy = 0;
+
+            if (abs(diffX) > abs(diffY)) dx = (diffX > 0) ? 1 : -1;
+            else                        dy = (diffY > 0) ? 1 : -1;
+
+            if (!CheckCollision(map_x + dx, map_y + dy))
+            {
+                map_x += dx;
+                map_y += dy;
+                acted = true;
+            }
+            else
+            {
+                if (dx != 0) { dx = 0; dy = (diffY > 0) ? 1 : -1; }
+                else { dy = 0; dx = (diffX > 0) ? 1 : -1; }
+
+                if (!CheckCollision(map_x + dx, map_y + dy))
+                {
+                    map_x += dx;
+                    map_y += dy;
+                    acted = true;
+                }
+            }
+        }
+    }
+
+    if (!acted)
+    {
+        static std::mt19937 mt(static_cast<unsigned int>(time(NULL)));
+        std::uniform_int_distribution<int> dir_dist(0, 4);
+        int dir = dir_dist(mt);
+
+        int dx = 0, dy = 0;
+        if (dir == 1) dy = -1;
+        else if (dir == 2) dy = 1;
+        else if (dir == 3) dx = -1;
+        else if (dir == 4) dx = 1;
+
+        if ((dx != 0 || dy != 0) && !CheckCollision(map_x + dx, map_y + dy))
+        {
+            map_x += dx;
+            map_y += dy;
             acted = true;
         }
     }
+
     return acted;
 }
 
@@ -86,28 +132,23 @@ void Enemy::Draw()
 {
     if (!stage) return;
 
+    int floor = stage->GetCurrentFloor();
+
+    if (floor > 0 && floor % 5 == 0) return;
+
     Player* p = stage->GetPlayer();
     bool isClairvoyance = (p && p->clairvoyanceTurn > 0);
     if (!stage->IsTileVisible(map_x, map_y) && !isClairvoyance) return;
-
-    int floor = stage->GetCurrentFloor();
-    if (floor > 0 && floor % 5 == 0) return;
 
     if (EnemyGraph == -1) return;
 
     const float z = stage->GetZoomRate();
     float ds = stage->GetTileSize() * z;
+    int ox = stage->GetCameraX();
+    int oy = stage->GetCameraY();
 
-    int lx = (int)(map_x * ds - stage->GetCameraX() * z);
-    int ty = (int)(map_y * ds - stage->GetCameraY() * z);
+    int lx = (int)(map_x * ds - ox * z);
+    int ty = (int)(map_y * ds - oy * z);
 
-    const float SIZE_RATE = 0.7f;
-    float aspect = 154.0f / 96.0f;
-    int drawW = (int)(ds * SIZE_RATE);
-    int drawH = (int)(drawW * aspect);
-
-    int offsetX = ((int)ds - drawW) / 2;
-    int drawY = ty - (drawH - (int)ds);
-
-    DrawExtendGraph(lx + offsetX, drawY, lx + offsetX + drawW, drawY + drawH, EnemyGraph, TRUE);
+    DrawExtendGraph(lx, ty, lx + (int)ds, ty + (int)ds, EnemyGraph, TRUE);
 }

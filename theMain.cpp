@@ -41,8 +41,8 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     int clearGraph = LoadGraph("Assets/CLEAR.png");
     int overGraph = LoadGraph("Assets/OVER.png");
     int currentFloor = 1;
-    static bool stairsFoundMsg = false; // 全滅メッセージを既に出したか
-    int enemyClearTimer = 0;            // メッセージを表示し続けるためのタイマー
+    static bool stairsFoundMsg = false;
+    int enemyClearTimer = 0;
 
     auto InitGame = [&]()
         {
@@ -94,14 +94,26 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         switch (scene.GetScene())
         {
         case SCENE_TITLE:
-            if (CheckSoundMem(bgmHandle) == 1)
-            {
-                StopSoundMem(bgmHandle);
-            }
             DrawExtendGraph(0, 0, 1400, 700, titleGraph, FALSE);
-            if (Input::IsKeyDown(KEY_INPUT_SPACE)) {
-                InitGame();
+
+            if (Input::IsKeyDown(KEY_INPUT_SPACE))
+            {
+                // プレイヤーのHPと状態をリセット
+                player->Heal(player->GetMaxHP());
+                player->clairvoyanceTurn = 0;
+
+                stage->ResetFloor();
+                stage->GenerateMap();
+
+                for (auto e : enemies) delete e;
+                enemies.clear();
+                stage->SpawnEnemies(enemies);
+
+                player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
+
                 scene.SetScene(SCENE_PLAY);
+
+                PlaySoundMem(bgmHandle, DX_PLAYTYPE_LOOP);
             }
             break;
 
@@ -120,7 +132,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 {
                     player->clairvoyanceTurn = 2;
                 }
-                // 千里眼の効果中なら、視界に関係なく描画する
+                // 千里眼の効果中なら、視界に関係なく敵を描画する
                 if (stage->IsTileVisible(e->GetMapX(), e->GetMapY()) || player->clairvoyanceTurn > 0)
                 {
                     e->Draw();
@@ -141,19 +153,14 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
 
                     if (CheckHitKey(KEY_INPUT_B) == 1)
                     {
-                        // Stageから階段の座標を取得
                         int sx = stage->GetStairsX();
                         int sy = stage->GetStairsY();
 
                         // 階段の地点を「探索済み」フラグに書き換える
                         stage->SetExplored(sx, sy);
 
-                        // プレイヤーにメッセージを表示
-                        player->ShowPickUpMessage("DEBUG: 階段の場所を感知した！");
-
-                        // 階段を発見したフラグを立てる（殲滅時と同じ演出にする場合）
+                        // 階段を発見したフラグを立てる
                         stairsFoundMsg = true;
-                        enemyClearTimer = 180;
                     }
 
                     if (dx != 0 || dy != 0) {
@@ -163,30 +170,45 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                         bool attacked = false;
                         for (auto e : enemies)
                         {
-                            if (e->GetHP() > 0 && nx == e->GetMapX() && ny == e->GetMapY())
+                            int ex = e->GetMapX();
+                            int ey = e->GetMapY();
+                            bool isHit = false;
+
+                            if (e->GetHP() > 0 && nx == ex && ny == ey)
+                            {
+                                isHit = true;
+                            }
+                            else if (e->GetHP() > 0 && stage->GetCurrentFloor() % 5 == 0)
+                            {
+                                int dx = nx - ex;
+                                int dy = ny - ey;
+
+                                if ((dx == 0 || dx == 1) && (dy == 0 || dy == 1))
+                                {
+                                    isHit = true;
+                                }
+                            }
+
+                            if (isHit)
                             {
                                 if (e->TakeDamage(player->GetAttack()))
                                 {
                                     e->SetPosition(-100, -100);
                                     int floor = stage->GetCurrentFloor();
                                     int gainExp = 10 + (floor * 5);
-
                                     player->AddExp(gainExp);
 
-                                    // ログに獲得経験値を表示
                                     std::string msg = std::to_string(gainExp) + " EXP獲得";
                                     player->ShowPickUpMessage(msg.c_str());
                                 }
                                 else
                                 {
-                                    player->Heal(-5);
                                 }
                                 attacked = true;
                                 isPlayerTurn = false;
                                 break;
                             }
                         }
-
                         if (!attacked && player->Update())
                         {
                             stage->UpdateCamera(player->GetMapX(), player->GetMapY());
