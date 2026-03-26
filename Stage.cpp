@@ -413,17 +413,19 @@ bool Stage::IsOccupied(int x, int y) const
 	{
 		if (!e || e->GetHP() <= 0) continue;
 
-		if (currentFloor % 5 == 0) // ボス階の場合
+		if (currentFloor % 5 == 0) // ★ここがボス階（5, 10, 15...階）の判定
 		{
-			// 中心からの距離を計算
+			// ボスの中心座標(0.5f足した位置)と、判定したいマスの中心座標の差を計算
 			float dist_x = abs((e->GetMapX() + 0.5f) - (x + 0.5f));
 			float dist_y = abs((e->GetMapY() + 0.5f) - (y + 0.5f));
 
-			// ★ 1.8f を 2.2f くらいに広げると、腕にめり込む前に止まります
-			if (dist_x < 2.2f && dist_y < 2.2f) return true;
+			// ★ここを「横長」に修正します
+			// ゴーレムの腕に合わせて横(dist_x)を広げ、縦(dist_y)は少し抑える
+			if (dist_x < 2.5f && dist_y < 1.8f) return true;
 		}
 		else
 		{
+			// 通常の敵は 1マス判定
 			if (e->GetMapX() == x && e->GetMapY() == y) return true;
 		}
 	}

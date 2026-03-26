@@ -84,27 +84,12 @@ public:
 	static const int MAP_HEIGHT = 36;
 	int itemMapData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 	void SetExplored(int x, int y);
-	void ResetFloor() { currentFloor = 4; }
+	void ResetFloor() { currentFloor = 5; }
 
 	bool CanMoveTo(int nx, int ny) const
 	{
 		if (GetTileType(nx, ny) == TILE_WALL) return false;
-
-		for (auto e : enemies) {
-			if (e->GetHP() <= 0) continue;
-
-			if (currentFloor % 5 == 0) 
-			{
-				float dist_x = abs((e->GetMapX() + 0.5f) - (nx + 0.5f));
-				float dist_y = abs((e->GetMapY() + 0.5f) - (ny + 0.5f));
-
-				if (dist_x < 1.8f && dist_y < 1.8f) return false;
-			}
-			else 
-			{
-				if (e->GetMapX() == nx && e->GetMapY() == ny) return false;
-			}
-		}
+		if (IsOccupied(nx, ny)) return false; 
 		return true;
 	}
 

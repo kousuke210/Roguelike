@@ -75,9 +75,8 @@ bool Enemy::Update()
     {
         bool canAttack = false;
 
-        if (floor % 5 == 0) // ボスの場合
+        if (floor % 5 == 0)
         {
-            // 中心座標の差を計算
             float bCX = (float)map_x + 0.5f;
             float bCY = (float)map_y + 0.5f;
             float pCX = (float)px + 0.5f;
@@ -86,8 +85,8 @@ bool Enemy::Update()
             float diffX = abs(bCX - pCX);
             float diffY = abs(bCY - pCY);
 
-            // 半径 1.5 マス以内にプレイヤーがいれば攻撃（画像サイズに合わせて調整してね）
-            if (diffX <= 1.8f && diffY <= 1.8f)
+            // 攻撃リーチを3.0fに設定。2.5fで止まったゴーレムの攻撃が、しっかりプレイヤーに届きます
+            if (diffX <= 3.0f && diffY <= 2.0f)
             {
                 canAttack = true;
             }
