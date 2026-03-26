@@ -179,5 +179,5 @@ void Enemy::Draw()
     DrawExtendGraph(lx, ty, lx + (int)ds, ty + (int)ds, EnemyGraph, TRUE);
 
     // Ô‚¢˜gü‚ğ•`‰æ (thickness ‚ğ 2 ‚É‚µ‚Ä­‚µ‘¾‚­)
-    DrawBox(lx, ty, lx + (int)ds, ty + (int)ds, GetColor(255, 0, 0), FALSE);
+    //DrawBox(lx, ty, lx + (int)ds, ty + (int)ds, GetColor(255, 0, 0), FALSE);
 }

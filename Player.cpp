@@ -23,6 +23,7 @@ bool Player::CheckCollision(int next_map_x, int next_map_y)
 {
 	if (!stage) return true;
 	if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
+	if (stage->IsOccupied(next_map_x, next_map_y)) return true;
 	return false;
 }
 

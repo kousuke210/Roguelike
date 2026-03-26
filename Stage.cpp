@@ -406,3 +406,26 @@ void Stage::CreateBossFloor()
 		}
 	}
 }
+
+bool Stage::IsOccupied(int x, int y) const
+{
+	for (auto e : enemies)
+	{
+		if (!e || e->GetHP() <= 0) continue;
+
+		if (currentFloor % 5 == 0) // ƒ{ƒXŠK‚Ìê‡
+		{
+			// ’†S‚©‚ç‚Ì‹——£‚ğŒvZ
+			float dist_x = abs((e->GetMapX() + 0.5f) - (x + 0.5f));
+			float dist_y = abs((e->GetMapY() + 0.5f) - (y + 0.5f));
+
+			// š 1.8f ‚ğ 2.2f ‚­‚ç‚¢‚ÉL‚°‚é‚ÆA˜r‚É‚ß‚è‚Ş‘O‚É~‚Ü‚è‚Ü‚·
+			if (dist_x < 2.2f && dist_y < 2.2f) return true;
+		}
+		else
+		{
+			if (e->GetMapX() == x && e->GetMapY() == y) return true;
+		}
+	}
+	return false;
+}

@@ -1,6 +1,7 @@
 #include "Golem.h"
 #include "DxLib.h"
 #include "Stage.h"
+#include "Player.h"
 
 Golem::Golem()
 {
@@ -33,6 +34,6 @@ void Golem::Draw()
     int halfSize = drawSize / 2;
     DrawExtendGraph(centerX - halfSize, centerY - halfSize, centerX + halfSize, centerY + halfSize, bossImage, TRUE);
 
-    float hitRadius = 1.2f * ds;
-    DrawBox(centerX - hitRadius, centerY - hitRadius, centerX + hitRadius, centerY + hitRadius, GetColor(255, 0, 0), FALSE);
+    float hitRadius = 1.8f * ds;
+    //DrawBox(centerX - hitRadius, centerY - hitRadius, centerX + hitRadius, centerY + hitRadius, GetColor(255, 0, 0), FALSE);
 }
