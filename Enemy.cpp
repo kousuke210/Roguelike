@@ -75,9 +75,22 @@ bool Enemy::Update()
     {
         bool canAttack = false;
 
-        if (floor % 5 == 0)
+        if (floor % 5 == 0) // ボスの場合
         {
-            if ((diffX == 0 || diffX == 1) && (diffY == 0 || diffY == 1)) canAttack = true;
+            // 中心座標の差を計算
+            float bCX = (float)map_x + 0.5f;
+            float bCY = (float)map_y + 0.5f;
+            float pCX = (float)px + 0.5f;
+            float pCY = (float)py + 0.5f;
+
+            float diffX = abs(bCX - pCX);
+            float diffY = abs(bCY - pCY);
+
+            // 半径 1.5 マス以内にプレイヤーがいれば攻撃（画像サイズに合わせて調整してね）
+            if (diffX <= 1.8f && diffY <= 1.8f)
+            {
+                canAttack = true;
+            }
         }
         else
         {
@@ -140,6 +153,7 @@ bool Enemy::Update()
 
     return acted;
 }
+
 void Enemy::Draw()
 {
     if (!stage) return;
@@ -163,4 +177,7 @@ void Enemy::Draw()
     int ty = (int)(map_y * ds - oy * z);
 
     DrawExtendGraph(lx, ty, lx + (int)ds, ty + (int)ds, EnemyGraph, TRUE);
+
+    // 赤い枠線を描画 (thickness を 2 にして少し太く)
+    DrawBox(lx, ty, lx + (int)ds, ty + (int)ds, GetColor(255, 0, 0), FALSE);
 }

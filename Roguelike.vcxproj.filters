@@ -13,12 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="ソース ファイル\Boss">
-      <UniqueIdentifier>{eb14c805-e964-4496-87bf-8a13f8927fd1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ヘッダー ファイル\Boss">
-      <UniqueIdentifier>{f2ee08ce-a1d4-494e-a68b-36b9da45e7f2}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="theMain.cpp">
@@ -43,10 +37,10 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Boss.cpp">
-      <Filter>ソース ファイル\Boss</Filter>
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Golem.cpp">
-      <Filter>ソース ファイル\Boss</Filter>
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -69,10 +63,10 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Boss.h">
-      <Filter>ヘッダー ファイル\Boss</Filter>
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Golem.h">
-      <Filter>ヘッダー ファイル\Boss</Filter>
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
