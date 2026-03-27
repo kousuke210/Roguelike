@@ -289,6 +289,32 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             }
 
             // ステータス関連表示
+            if (stage->GetCurrentFloor() % 5 == 0)
+            {
+                for (auto e : enemies)
+                {
+                    if (e && e->GetHP() > 0)
+                    {
+                        int curHp = e->GetHP();
+                        int maxHp = 100; //後でボスごとの変数に
+
+                        int barWidth = 800;
+                        int barHeight = 30;
+                        int startX = (1400 - barWidth) / 2;
+                        int startY = 50;
+
+                        DrawBox(startX, startY, startX + barWidth, startY + barHeight, GetColor(50, 50, 50), TRUE);
+
+                        float hpRate = (float)curHp / maxHp;
+                        int redWidth = (int)(barWidth * hpRate);
+                        DrawBox(startX, startY, startX + redWidth, startY + barHeight, GetColor(255, 0, 0), TRUE);
+
+                        //SetFontSize(20);
+                        //DrawString(startX, startY - 25, "GOLEM", GetColor(255, 255, 255));
+                        break;
+                    }
+                }
+            }
             SetFontSize(24);
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
             DrawFormatString(550, 10, white, "ATK %d", player->GetAttack());

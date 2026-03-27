@@ -84,7 +84,7 @@ public:
 	static const int MAP_HEIGHT = 36;
 	int itemMapData[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 	void SetExplored(int x, int y);
-	void ResetFloor() { currentFloor = 4; }
+	void ResetFloor() { currentFloor = 5; }
 
 	bool CanMoveTo(int nx, int ny) const
 	{
