@@ -4,7 +4,7 @@
 #include <cmath>
 
 Player::Player()
-	: map_x(0), map_y(0), hp(35), maxHP(35), attack(5), stage(nullptr)
+	: map_x(0), map_y(0), hp(35), maxHP(350), attack(20), stage(nullptr)
 {
 	PlayerGraph = LoadGraph("Assets/Chara_1.png");
 }

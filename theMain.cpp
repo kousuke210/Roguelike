@@ -145,6 +145,63 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             {
                 if (isPlayerTurn)
                 {
+                    // EƒL[‚ÅUŒ‚
+                    if (Input::IsKeyDown(KEY_INPUT_E))
+                    {
+                        bool acted = false;
+                        for (auto it = enemies.begin(); it != enemies.end(); )
+                        {
+                            Enemy* e = *it;
+                            if (e && e->GetHP() > 0)
+                            {
+                                int ex = e->GetMapX();
+                                int ey = e->GetMapY();
+                                int px = player->GetMapX();
+                                int py = player->GetMapY();
+
+                                bool isHit = false;
+
+                                // ƒ{ƒXŠK‚È‚ç­‚µL‚¢”»’èi2.5ƒ}ƒXˆÈ“àj
+                                if (stage->GetCurrentFloor() % 5 == 0)
+                                {
+                                    float dx = abs((ex + 0.5f) - (px + 0.5f));
+                                    float dy = abs((ey + 0.5f) - (py + 0.5f));
+                                    if (dx <= 2.5f && dy <= 2.5f) isHit = true;
+                                }
+                                else
+                                {
+                                    // ’Êí‚Ì“G‚Í—×Ú1ƒ}ƒXˆÈ“à
+                                    int dist = abs(ex - px) + abs(ey - py);
+                                    if (dist <= 1) isHit = true;
+                                }
+
+                                if (isHit)
+                                {
+                                    if (e->TakeDamage(player->GetAttack()))
+                                    {
+                                        // Œ‚”jˆ—
+                                        int floor = stage->GetCurrentFloor();
+                                        int gainExp = 10 + (floor * 5);
+                                        player->AddExp(gainExp);
+                                        player->ShowPickUpMessage((std::to_string(gainExp) + " EXPŠl“¾").c_str());
+
+                                        delete e;
+                                        it = enemies.erase(it); // ƒŠƒXƒg‚©‚çíœ
+                                        acted = true;
+                                        continue;
+                                    }
+                                    acted = true; // ƒ_ƒ[ƒW‚ð—^‚¦‚½‚çs“®¬—§
+                                }
+                            }
+                            it++;
+                        }
+
+                        if (acted)
+                        {
+                            isPlayerTurn = false; // UŒ‚‚µ‚½‚çƒ^[ƒ“I—¹
+                            player->UpdateTurn(); // ƒoƒt‚Ìƒ^[ƒ“XV
+                        }
+                    }
                     int dx = 0, dy = 0;
                     if (Input::IsKeyDown(KEY_INPUT_W)) dy = -1;
                     else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
@@ -163,77 +220,80 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                         stairsFoundMsg = true;
                     }
 
-                    if (dx != 0 || dy != 0) {
-                        int nx = player->GetMapX() + dx;
-                        int ny = player->GetMapY() + dy;
-
-                        bool attacked = false;
-                        for (auto e : enemies)
+                    if (isPlayerTurn)
+                    {
+                        if (Input::IsKeyDown(KEY_INPUT_E))
                         {
-                            int ex = e->GetMapX();
-                            int ey = e->GetMapY();
-                            bool isHit = false;
-
-                            if (e->GetHP() > 0 && nx == ex && ny == ey)
+                            bool hitAny = false;
+                            for (auto it = enemies.begin(); it != enemies.end(); )
                             {
-                                isHit = true;
+                                Enemy* e = *it;
+                                if (e && e->GetHP() > 0)
+                                {
+                                    float dx = abs((e->GetMapX() + 0.5f) - (player->GetMapX() + 0.5f));
+                                    float dy = abs((e->GetMapY() + 0.5f) - (player->GetMapY() + 0.5f));
+
+                                    bool isHit = false;
+                                    if (stage->GetCurrentFloor() % 5 == 0) 
+                                    {
+                                        if (dx <= 2.5f && dy <= 2.5f) isHit = true;
+                                    }
+                                    else 
+                                    { 
+                                        if (dx + dy <= 1.5f) isHit = true;
+                                    }
+
+                                    if (isHit) {
+                                        hitAny = true;
+                                        if (e->TakeDamage(player->GetAttack())) 
+                                        {
+                                            int gainExp = 10 + (stage->GetCurrentFloor() * 5);
+                                            player->AddExp(gainExp);
+                                            player->ShowPickUpMessage((std::to_string(gainExp) + " EXPŠl“¾").c_str());
+                                            delete e;
+                                            it = enemies.erase(it);
+                                            continue;
+                                        }
+                                    }
+                                }
+                                it++;
                             }
-                            else if (e->GetHP() > 0 && stage->GetCurrentFloor() % 5 == 0)
-                            {
-                                int dx = nx - ex;
-                                int dy = ny - ey;
-
-                                if ((dx == 0 || dx == 1) && (dy == 0 || dy == 1))
-                                {
-                                    isHit = true;
-                                }
-                            }
-
-                            if (isHit)
-                            {
-                                if (e->TakeDamage(player->GetAttack()))
-                                {
-                                    e->SetPosition(-100, -100);
-                                    int floor = stage->GetCurrentFloor();
-                                    int gainExp = 10 + (floor * 5);
-                                    player->AddExp(gainExp);
-
-                                    std::string msg = std::to_string(gainExp) + " EXPŠl“¾";
-                                    player->ShowPickUpMessage(msg.c_str());
-                                }
-                                else
-                                {
-                                }
-                                attacked = true;
+                            if (hitAny) {
+                                player->UpdateTurn();
                                 isPlayerTurn = false;
-                                break;
                             }
                         }
-                        if (!attacked && player->Update())
+
+                        int dx = 0, dy = 0;
+                        if (Input::IsKeyDown(KEY_INPUT_W))      dy = -1;
+                        else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
+                        else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
+                        else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
+
+                        if (dx != 0 || dy != 0) 
                         {
-                            stage->UpdateCamera(player->GetMapX(), player->GetMapY());
-                            stage->GetItemManager()->PickUpItem(player->GetMapX(), player->GetMapY(), player);
+                            int nx = player->GetMapX() + dx;
+                            int ny = player->GetMapY() + dy;
 
-                            int px = player->GetMapX();
-                            int py = player->GetMapY();
-                            int currentTile = stage->GetTileType(px, py);
-
-                            // ŠK’i‚Ì”»’è
-                            if (stage->GetTileType(player->GetMapX(), player->GetMapY()) == TILE_STAIRS)
+                            if (stage->CanMoveTo(nx, ny)) 
                             {
-                                stage->AdvanceFloor();
-                                stage->GenerateMap();
+                                player->SetPosition(nx, ny);
+                                stage->UpdateCamera(nx, ny);
+                                stage->GetItemManager()->PickUpItem(nx, ny, player);
 
-                                for (auto e : enemies) delete e;
-                                enemies.clear();
-                                stage->SpawnEnemies(enemies);
-
-                                player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
-                                player->ShowPickUpMessage("ŠK’i‚ð‰º‚è‚½...");
+                                if (stage->GetTileType(nx, ny) == TILE_STAIRS) 
+                                {
+                                    stage->AdvanceFloor();
+                                    stage->GenerateMap();
+                                    for (auto e : enemies) delete e;
+                                    enemies.clear();
+                                    stage->SpawnEnemies(enemies);
+                                    player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
+                                    player->ShowPickUpMessage("ŠK’i‚ð‰º‚è‚½...");
+                                }
+                                player->UpdateTurn();
+                                isPlayerTurn = false;
                             }
-
-                            player->UpdateTurn();
-                            isPlayerTurn = false;
                         }
                     }
                 }
