@@ -39,23 +39,40 @@ bool Enemy::CheckCollision(int next_map_x, int next_map_y)
 {
     if (!stage) return true;
 
-    if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
+    // ボス専用の当たり判定
+    if (stage->GetCurrentFloor() % 5 == 0)
+    {
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (stage->GetTileType(next_map_x + dx, next_map_y + dy) == TILE_WALL) {
+                    return true;
+                }
+            }
+        }
+    }
+    else
+    {
+        if (stage->GetTileType(next_map_x, next_map_y) == TILE_WALL) return true;
+    }
 
-    // 敵同士の重なり判定
+    Player* player = stage->GetPlayer();
+    if (player && stage->GetCurrentFloor() % 5 == 0)
+    {
+        float dist_x = abs((next_map_x + 0.5f) - (player->GetMapX() + 0.5f));
+        float dist_y = abs((next_map_y + 0.5f) - (player->GetMapY() + 0.5f));
+
+        if (dist_x < 1.1f && dist_y < 1.1f) return true;
+    }
+
     for (auto other : stage->GetEnemies())
     {
         if (other == this) continue;
         if (other->GetHP() <= 0) continue;
-
-        if (other->GetMapX() == next_map_x && other->GetMapY() == next_map_y)
-        {
-            return true;
-        }
+        if (other->GetMapX() == next_map_x && other->GetMapY() == next_map_y) return true;
     }
 
     return false;
 }
-
 bool Enemy::Update()
 {
     if (!stage) return false;
@@ -85,8 +102,7 @@ bool Enemy::Update()
             float diffX = abs(bCX - pCX);
             float diffY = abs(bCY - pCY);
 
-            // 攻撃リーチを3.0fに設定。2.5fで止まったゴーレムの攻撃が、しっかりプレイヤーに届きます
-            if (diffX <= 3.0f && diffY <= 2.0f)
+            if (diffX <= 2.0f && diffY <= 2.0f)
             {
                 canAttack = true;
             }

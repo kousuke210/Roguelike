@@ -84,11 +84,10 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	const float z = ZOOM_RATE;
 	const float ds = TILE_SIZE * z;
 
-	// 画面上の描画範囲（l, t, r, b）
 	int l = (int)(x * ds - offset_x * z);
 	int t = (int)(y * ds - offset_y * z);
-	int r = (int)((x + 1) * ds - offset_x * z);
-	int b = (int)((y + 1) * ds - offset_y * z);
+	int r = l + (int)ds;
+	int b = t + (int)ds;
 
 	bool isVis = IsTileVisible(x, y);
 	bool isExp = (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) && (exploredData[y][x] == 1);
@@ -132,26 +131,24 @@ void Stage::DrawTile(int x, int y, int type, int offset_x, int offset_y)
 	}
 }
 
-void Stage::UpdateCamera(int px, int py) 
+void Stage::UpdateCamera(int px, int py)
 {
+	const int SW = 1400; // ウィンドウ幅
+	const int SH = 700;  // ウィンドウ高
+	const float z = ZOOM_RATE;
+	const float ds = TILE_SIZE * z;
 
-	const int SW = 1400;
-	const int SH = 700;
-	const int DTS = (int)(TILE_SIZE * ZOOM_RATE);
-	const int STW = SW / DTS;
-	const int STH = SH / DTS;
+	float MWP = MAP_WIDTH * ds;
+	float MHP = MAP_HEIGHT * ds;
 
-	int tx = (px / STW) * TILE_SIZE * STW;
-	int ty = (py / STH) * TILE_SIZE * STH;
+	float target_cx = (px * ds + ds / 2.0f - SW / 2.0f) / z;
+	float target_cy = (py * ds + ds / 2.0f - SH / 2.0f) / z;
 
-	int MWP = MAP_WIDTH * TILE_SIZE;
-	int MHP = MAP_HEIGHT * TILE_SIZE;
+	camera_x = (int)max(0.0f, min(target_cx, (MAP_WIDTH * TILE_SIZE) - (SW / z)));
+	camera_y = (int)max(0.0f, min(target_cy, (MAP_HEIGHT * TILE_SIZE) - (SH / z)));
 
-	int SWU = (int)(SW / ZOOM_RATE);
-	int SHU = (int)(SH / ZOOM_RATE);
-
-	camera_x = max(0, min(tx, MWP - SWU));
-	camera_y = max(0, min(ty, MHP - SHU));
+	if (MWP < SW) camera_x = (int)((MAP_WIDTH * TILE_SIZE) / 2.0f - (SW / z) / 2.0f);
+	if (MHP < SH) camera_y = (int)((MAP_HEIGHT * TILE_SIZE) / 2.0f - (SH / z) / 2.0f);
 
 	CalculateVisibleTiles(px, py);
 	for (int y = 0; y < MAP_HEIGHT; ++y)
@@ -341,9 +338,9 @@ void Stage::CreateBossFloor()
 {
 	Room prepRoom;
 	prepRoom.x = 10;
-	prepRoom.y = MAP_HEIGHT / 2 - 3;
 	prepRoom.w = 6;
 	prepRoom.h = 6;
+	prepRoom.y = (MAP_HEIGHT / 2) - (prepRoom.h / 2);
 	prepRoom.center_x = prepRoom.x + prepRoom.w / 2;
 	prepRoom.center_y = prepRoom.y + prepRoom.h / 2;
 	rooms.push_back(prepRoom);
@@ -352,10 +349,10 @@ void Stage::CreateBossFloor()
 	bossRoom.w = 16;
 	bossRoom.h = 16;
 	bossRoom.x = MAP_WIDTH - bossRoom.w - 10;
-	bossRoom.y = MAP_HEIGHT / 2 - bossRoom.h / 2;
+	bossRoom.y = (MAP_HEIGHT / 2) - (bossRoom.h / 2);
 	bossRoom.center_x = bossRoom.x + bossRoom.w / 2;
 	bossRoom.center_y = bossRoom.y + bossRoom.h / 2;
-	rooms.push_back(bossRoom); // これが 1 番
+	rooms.push_back(bossRoom);
 
 	// マップに床を描く
 	for (const auto& r : rooms) 
@@ -381,7 +378,6 @@ void Stage::CreateBossFloor()
 	stairsX = bossRoom.center_x;
 	stairsY = bossRoom.center_y;
 
-	// ボス階は最初から全マップ見えてもいいなら以下を追加（デバッグも楽です）
 	for (int y = 0; y < MAP_HEIGHT; y++) 
 	{
 		for (int x = 0; x < MAP_WIDTH; x++) 
@@ -413,15 +409,12 @@ bool Stage::IsOccupied(int x, int y) const
 	{
 		if (!e || e->GetHP() <= 0) continue;
 
-		if (currentFloor % 5 == 0) // ★ここがボス階（5, 10, 15...階）の判定
+		if (currentFloor % 5 == 0)
 		{
-			// ボスの中心座標(0.5f足した位置)と、判定したいマスの中心座標の差を計算
 			float dist_x = abs((e->GetMapX() + 0.5f) - (x + 0.5f));
 			float dist_y = abs((e->GetMapY() + 0.5f) - (y + 0.5f));
 
-			// ★ここを「横長」に修正します
-			// ゴーレムの腕に合わせて横(dist_x)を広げ、縦(dist_y)は少し抑える
-			if (dist_x < 2.5f && dist_y < 1.8f) return true;
+			if (dist_x < 1.8f && dist_y < 1.8f) return true;
 		}
 		else
 		{
