@@ -64,7 +64,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             {
                 auto& r = stage->GetRooms()[0];
                 player->SetPosition(r.center_x, r.center_y);
-
+                stage->UpdateCamera(player->GetMapX(), player->GetMapY());
                 const auto& rooms = stage->GetRooms();
                 for (size_t i = 1; i < rooms.size(); i++)
                 {
@@ -197,6 +197,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             DrawFormatString(550, 10, white, "ATK %d", player->GetAttack());
             DrawFormatString(700, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)", player->GetLevel(), player->GetExp(), player->GetNextExp());
             DrawFormatString(10, 10, GetColor(255, 255, 255), "B%dF", stage->GetCurrentFloor());
+            stage->DrawMiniMap(1140, 50, 3);
             SetFontSize(16);
             break;
 

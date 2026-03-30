@@ -138,23 +138,29 @@ void Stage::UpdateCamera(int px, int py)
 	const float z = ZOOM_RATE;
 	const float ds = TILE_SIZE * z;
 
-	float MWP = MAP_WIDTH * ds;
-	float MHP = MAP_HEIGHT * ds;
-
 	float target_cx = (px * ds + ds / 2.0f - SW / 2.0f) / z;
 	float target_cy = (py * ds + ds / 2.0f - SH / 2.0f) / z;
 
-	camera_x = (int)max(0.0f, min(target_cx, (MAP_WIDTH * TILE_SIZE) - (SW / z)));
-	camera_y = (int)max(0.0f, min(target_cy, (MAP_HEIGHT * TILE_SIZE) - (SH / z)));
+	float limit_x = (MAP_WIDTH * ds - SW) / z;
+	float limit_y = (MAP_HEIGHT * ds - SH) / z;
 
-	if (MWP < SW) camera_x = (int)((MAP_WIDTH * TILE_SIZE) / 2.0f - (SW / z) / 2.0f);
-	if (MHP < SH) camera_y = (int)((MAP_HEIGHT * TILE_SIZE) / 2.0f - (SH / z) / 2.0f);
+	camera_x = (int)max(0.0f, min(target_cx, max(0.0f, limit_x)));
+	camera_y = (int)max(0.0f, min(target_cy, max(0.0f, limit_y)));
+
+	if (currentFloor % 5 == 0)
+	{
+		if (MAP_WIDTH * ds < SW) {
+			camera_x = (int)((MAP_WIDTH * TILE_SIZE) / 2.0f - (SW / z) / 2.0f);
+		}
+		if (MAP_HEIGHT * ds < SH) {
+			camera_y = (int)((MAP_HEIGHT * TILE_SIZE) / 2.0f - (SH / z) / 2.0f);
+		}
+	}
 
 	CalculateVisibleTiles(px, py);
 	for (int y = 0; y < MAP_HEIGHT; ++y)
 		for (int x = 0; x < MAP_WIDTH; ++x) if (visibleData[y][x]) SetExplored(x, y);
 }
-
 void Stage::DrawOverlayMap(int sw, int sh)
 {
 	const int SCALE = 8;
@@ -262,7 +268,7 @@ void Stage::SpawnEnemies(std::vector<Enemy*>& enemies)
 
 
 
-void Stage::GenerateMap() 
+void Stage::GenerateMap()
 {
 	InitializeMap();
 	rooms.clear();
@@ -270,16 +276,16 @@ void Stage::GenerateMap()
 	memset(visibleData, 0, sizeof(visibleData));
 	memset(itemMapData, 0, sizeof(itemMapData));
 
-	if (currentFloor > 0 && currentFloor % 5 == 0) 
+	if (currentFloor > 0 && currentFloor % 5 == 0)
 	{
-		CreateBossFloor(); // 5の倍数のボスフロア用の固定マップ
+		CreateBossFloor();
 	}
-	else 
+	else
 	{
 		CreateRooms();
 		CreateCorridors();
 
-		if (!rooms.empty()) 
+		if (!rooms.empty())
 		{
 			const auto& exitRoom = rooms.back();
 			stairsX = exitRoom.center_x;
@@ -289,6 +295,11 @@ void Stage::GenerateMap()
 	}
 
 	itemManager->SpawnItems(this);
+
+	if (player) 
+	{
+		UpdateCamera(player->GetMapX(), player->GetMapY());
+	}
 }
 
 void Stage::Draw() {
@@ -378,13 +389,15 @@ void Stage::CreateBossFloor()
 	stairsX = bossRoom.center_x;
 	stairsY = bossRoom.center_y;
 
-	for (int y = 0; y < MAP_HEIGHT; y++) 
+	/*
+	for (int y = 0; y < MAP_HEIGHT; y++)
 	{
-		for (int x = 0; x < MAP_WIDTH; x++) 
+		for (int x = 0; x < MAP_WIDTH; x++)
 		{
 			exploredData[y][x] = 1;
 		}
 	}
+	*/
 
 	if (rooms.size() >= 2) 
 	{
@@ -395,7 +408,7 @@ void Stage::CreateBossFloor()
 			{
 				if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT)
 				{
-					exploredData[y][x] = 1; // 探索済みにする
+					exploredData[y][x] = 1;
 					visibleData[y][x] = 1; 
 				}
 			}
@@ -423,4 +436,47 @@ bool Stage::IsOccupied(int x, int y) const
 		}
 	}
 	return false;
+}
+
+void Stage::DrawMiniMap(int screenX, int screenY, int size)
+{
+	// size は 1タイルの大きさ（例: 4ピクセル）
+	for (int y = 0; y < MAP_HEIGHT; y++)
+	{
+		for (int x = 0; x < MAP_WIDTH; x++)
+		{
+			// 探索済み、または千里眼で見えているタイルだけ描く
+			if (exploredData[y][x] || (player && player->clairvoyanceTurn > 0))
+			{
+				int color;
+				int type = mapData[y][x];
+
+				if (type == TILE_WALL) color = GetColor(100, 100, 100); // 壁はグレー
+				else if (type == TILE_STAIRS) color = GetColor(0, 255, 255); // 階段は水色
+				else color = GetColor(200, 200, 200); // 床は明るいグレー
+
+				// 描画
+				DrawBox(screenX + x * size, screenY + y * size,
+					screenX + (x + 1) * size, screenY + (y + 1) * size, color, TRUE);
+			}
+		}
+	}
+
+	// プレイヤーの位置を点滅する点として描く
+	if (player)
+	{
+		int pColor = GetColor(255, 255, 0); // プレイヤーは黄色
+		int px = screenX + player->GetMapX() * size;
+		int py = screenY + player->GetMapY() * size;
+		DrawBox(px, py, px + size, py + size, pColor, TRUE);
+	}
+
+	// 枠線を描く
+	DrawBox(screenX, screenY, screenX + MAP_WIDTH * size, screenY + MAP_HEIGHT * size, GetColor(255, 255, 255), FALSE);
+}
+
+void Stage::SpawnStairs(int x, int y)
+{
+	mapData[y][x] = TILE_STAIRS;
+	SetExplored(x, y);
 }

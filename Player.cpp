@@ -38,12 +38,20 @@ bool Player::ProcessInput(std::vector<Enemy*>& enemies)
 				bool isHit = (stage->GetCurrentFloor() % 5 == 0) ?
 					(dx <= 2.5f && dy <= 2.5f) : (dx + dy <= 1.5f);
 
-				if (isHit) 
+				if (isHit)
 				{
 					hitAny = true;
-					if (e->TakeDamage(attack)) 
+					if (e->TakeDamage(attack))
 					{
+						// 経験値獲得
 						AddExp(10 + (stage->GetCurrentFloor() * 5));
+
+						if (stage->GetCurrentFloor() % 5 == 0)
+						{
+							stage->SpawnStairs(stage->GetStairsX(), stage->GetStairsY());
+							ShowPickUpMessage("ボスの魔力が消え、階段が現れた！");
+						}
+
 						delete e;
 						it = enemies.erase(it);
 						continue;
@@ -75,14 +83,19 @@ bool Player::ProcessInput(std::vector<Enemy*>& enemies)
 			stage->GetItemManager()->PickUpItem(map_x, map_y, this);
 
 			// 階段判定
-			if (stage->GetTileType(map_x, map_y) == TILE_STAIRS) 
+			if (stage->GetTileType(map_x, map_y) == TILE_STAIRS)
 			{
 				stage->AdvanceFloor();
 				stage->GenerateMap();
+
 				for (auto e : enemies) delete e;
 				enemies.clear();
 				stage->SpawnEnemies(enemies);
+
 				SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
+
+				stage->UpdateCamera(map_x, map_y);
+
 				ShowPickUpMessage("階段を下りた...");
 			}
 			UpdateTurn();
