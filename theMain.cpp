@@ -43,6 +43,8 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
     int currentFloor = 1;
     static bool stairsFoundMsg = false;
     int enemyClearTimer = 0;
+    int turnWaitTimer = 0;
+    const int TURN_DELAY = 12;
 
     auto InitGame = [&]()
         {
@@ -95,30 +97,22 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         {
         case SCENE_TITLE:
             DrawExtendGraph(0, 0, 1400, 700, titleGraph, FALSE);
-
             if (Input::IsKeyDown(KEY_INPUT_SPACE))
             {
-                // プレイヤーのHPと状態をリセット
                 player->Heal(player->GetMaxHP());
                 player->clairvoyanceTurn = 0;
-
                 stage->ResetFloor();
                 stage->GenerateMap();
-
                 for (auto e : enemies) delete e;
                 enemies.clear();
                 stage->SpawnEnemies(enemies);
-
                 player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
-
                 scene.SetScene(SCENE_PLAY);
-
                 PlaySoundMem(bgmHandle, DX_PLAYTYPE_LOOP);
             }
             break;
 
         case SCENE_PLAY:
-            // BGMのループ再生
             if (CheckSoundMem(bgmHandle) == 0) PlaySoundMem(bgmHandle, DX_PLAYTYPE_LOOP);
 
             if (Input::IsKeyDown(KEY_INPUT_TAB)) isMapOverlayVisible = !isMapOverlayVisible;
@@ -128,11 +122,7 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
             stage->Draw();
             for (auto e : enemies)
             {
-                if (stage->GetCurrentFloor() % 5 == 0)
-                {
-                    player->clairvoyanceTurn = 2;
-                }
-                // 千里眼の効果中なら、視界に関係なく敵を描画する
+                if (stage->GetCurrentFloor() % 5 == 0) player->clairvoyanceTurn = 2;
                 if (stage->IsTileVisible(e->GetMapX(), e->GetMapY()) || player->clairvoyanceTurn > 0)
                 {
                     e->Draw();
@@ -143,204 +133,40 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
 
             if (!isMapOverlayVisible)
             {
-                if (isPlayerTurn)
+                if (turnWaitTimer > 0)
                 {
-                    // Eキーで攻撃
-                    if (Input::IsKeyDown(KEY_INPUT_E))
+                    turnWaitTimer--;
+                }
+                else if (isPlayerTurn)
+                {
+                    if (player->ProcessInput(enemies))
                     {
-                        bool acted = false;
-                        for (auto it = enemies.begin(); it != enemies.end(); )
-                        {
-                            Enemy* e = *it;
-                            if (e && e->GetHP() > 0)
-                            {
-                                int ex = e->GetMapX();
-                                int ey = e->GetMapY();
-                                int px = player->GetMapX();
-                                int py = player->GetMapY();
-
-                                bool isHit = false;
-
-                                // ボス階なら少し広い判定（2.5マス以内）
-                                if (stage->GetCurrentFloor() % 5 == 0)
-                                {
-                                    float dx = abs((ex + 0.5f) - (px + 0.5f));
-                                    float dy = abs((ey + 0.5f) - (py + 0.5f));
-                                    if (dx <= 2.5f && dy <= 2.5f) isHit = true;
-                                }
-                                else
-                                {
-                                    // 通常の敵は隣接1マス以内
-                                    int dist = abs(ex - px) + abs(ey - py);
-                                    if (dist <= 1) isHit = true;
-                                }
-
-                                if (isHit)
-                                {
-                                    if (e->TakeDamage(player->GetAttack()))
-                                    {
-                                        // 撃破処理
-                                        int floor = stage->GetCurrentFloor();
-                                        int gainExp = 10 + (floor * 5);
-                                        player->AddExp(gainExp);
-                                        player->ShowPickUpMessage((std::to_string(gainExp) + " EXP獲得").c_str());
-
-                                        delete e;
-                                        it = enemies.erase(it); // リストから削除
-                                        acted = true;
-                                        continue;
-                                    }
-                                    acted = true; // ダメージを与えたら行動成立
-                                }
-                            }
-                            it++;
-                        }
-
-                        if (acted)
-                        {
-                            isPlayerTurn = false; // 攻撃したらターン終了
-                            player->UpdateTurn(); // バフのターン更新
-                        }
-                    }
-                    int dx = 0, dy = 0;
-                    if (Input::IsKeyDown(KEY_INPUT_W)) dy = -1;
-                    else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
-                    else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
-                    else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
-
-                    if (CheckHitKey(KEY_INPUT_B) == 1)
-                    {
-                        int sx = stage->GetStairsX();
-                        int sy = stage->GetStairsY();
-
-                        // 階段の地点を「探索済み」フラグに書き換える
-                        stage->SetExplored(sx, sy);
-
-                        // 階段を発見したフラグを立てる
-                        stairsFoundMsg = true;
-                    }
-
-                    if (isPlayerTurn)
-                    {
-                        if (Input::IsKeyDown(KEY_INPUT_E))
-                        {
-                            bool hitAny = false;
-                            for (auto it = enemies.begin(); it != enemies.end(); )
-                            {
-                                Enemy* e = *it;
-                                if (e && e->GetHP() > 0)
-                                {
-                                    float dx = abs((e->GetMapX() + 0.5f) - (player->GetMapX() + 0.5f));
-                                    float dy = abs((e->GetMapY() + 0.5f) - (player->GetMapY() + 0.5f));
-
-                                    bool isHit = false;
-                                    if (stage->GetCurrentFloor() % 5 == 0) 
-                                    {
-                                        if (dx <= 2.5f && dy <= 2.5f) isHit = true;
-                                    }
-                                    else 
-                                    { 
-                                        if (dx + dy <= 1.5f) isHit = true;
-                                    }
-
-                                    if (isHit) {
-                                        hitAny = true;
-                                        if (e->TakeDamage(player->GetAttack())) 
-                                        {
-                                            int gainExp = 10 + (stage->GetCurrentFloor() * 5);
-                                            player->AddExp(gainExp);
-                                            player->ShowPickUpMessage((std::to_string(gainExp) + " EXP獲得").c_str());
-                                            delete e;
-                                            it = enemies.erase(it);
-                                            continue;
-                                        }
-                                    }
-                                }
-                                it++;
-                            }
-                            if (hitAny) {
-                                player->UpdateTurn();
-                                isPlayerTurn = false;
-                            }
-                        }
-
-                        int dx = 0, dy = 0;
-                        if (Input::IsKeyDown(KEY_INPUT_W))      dy = -1;
-                        else if (Input::IsKeyDown(KEY_INPUT_S)) dy = 1;
-                        else if (Input::IsKeyDown(KEY_INPUT_A)) dx = -1;
-                        else if (Input::IsKeyDown(KEY_INPUT_D)) dx = 1;
-
-                        if (dx != 0 || dy != 0) 
-                        {
-                            int nx = player->GetMapX() + dx;
-                            int ny = player->GetMapY() + dy;
-
-                            if (stage->CanMoveTo(nx, ny)) 
-                            {
-                                player->SetPosition(nx, ny);
-                                stage->UpdateCamera(nx, ny);
-                                stage->GetItemManager()->PickUpItem(nx, ny, player);
-
-                                if (stage->GetTileType(nx, ny) == TILE_STAIRS) 
-                                {
-                                    stage->AdvanceFloor();
-                                    stage->GenerateMap();
-                                    for (auto e : enemies) delete e;
-                                    enemies.clear();
-                                    stage->SpawnEnemies(enemies);
-                                    player->SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
-                                    player->ShowPickUpMessage("階段を下りた...");
-                                }
-                                player->UpdateTurn();
-                                isPlayerTurn = false;
-                            }
-                        }
+                        isPlayerTurn = false;
+                        turnWaitTimer = TURN_DELAY;
                     }
                 }
                 else
                 {
                     for (auto e : enemies) { e->Update(); }
                     isPlayerTurn = true;
+                    turnWaitTimer = TURN_DELAY;
                 }
 
-                //ゲームオーバー：プレイヤーのHPが0以下
-                if (player->GetHP() <= 0)
-                {
-                    scene.SetScene(SCENE_GAMEOVER);
-                }
+                // ゲームオーバー判定
+                if (player->GetHP() <= 0) scene.SetScene(SCENE_GAMEOVER);
 
                 bool anyEnemyAlive = false;
-                for (auto e : enemies)
-                {
-                    if (e->GetHP() > 0)
-                    {
-                        anyEnemyAlive = true;
-                        break;
-                    }
+                for (auto e : enemies) if (e->GetHP() > 0) { anyEnemyAlive = true; break; }
+
+                if (!anyEnemyAlive && !stairsFoundMsg) {
+                    player->ShowPickUpMessage("敵を殲滅した！階段の場所が判明！");
+                    stage->SetExplored(stage->GetStairsX(), stage->GetStairsY());
+                    stairsFoundMsg = true;
+                    enemyClearTimer = 180;
                 }
 
-                if (!anyEnemyAlive) {
-                    if (!stairsFoundMsg) 
-                    { // まだメッセージを出していないなら
-                        player->ShowPickUpMessage("敵を殲滅した！階段の場所が判明！");
-
-                        int sx = stage->GetStairsX();
-                        int sy = stage->GetStairsY();
-                        stage->SetExplored(sx, sy);
-
-                        stairsFoundMsg = true;
-                        enemyClearTimer = 180; // 3秒タイマー
-                    }
-                }
-
-                if (enemyClearTimer > 0)
-                {
-                    enemyClearTimer--;
-                    if (enemyClearTimer == 0)
-                    {
-                        // 3秒経ったら、表示されているログを消す
-                        player->ShowPickUpMessage("");
-                    }
+                if (enemyClearTimer > 0) {
+                    if (--enemyClearTimer == 0) player->ShowPickUpMessage("");
                 }
             }
             else
@@ -348,57 +174,36 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
                 stage->DrawOverlayMap(1400, 700);
             }
 
-            // ステータス関連表示
+            // --- ボスのHPバー表示 ---
             if (stage->GetCurrentFloor() % 5 == 0)
             {
                 for (auto e : enemies)
                 {
                     if (e && e->GetHP() > 0)
                     {
-                        int curHp = e->GetHP();
-                        int maxHp = 100; //後でボスごとの変数に
-
                         int barWidth = 800;
-                        int barHeight = 30;
                         int startX = (1400 - barWidth) / 2;
-                        int startY = 50;
-
-                        DrawBox(startX, startY, startX + barWidth, startY + barHeight, GetColor(50, 50, 50), TRUE);
-
-                        float hpRate = (float)curHp / maxHp;
-                        int redWidth = (int)(barWidth * hpRate);
-                        DrawBox(startX, startY, startX + redWidth, startY + barHeight, GetColor(255, 0, 0), TRUE);
-
-                        //SetFontSize(20);
-                        //DrawString(startX, startY - 25, "GOLEM", GetColor(255, 255, 255));
+                        DrawBox(startX, 50, startX + barWidth, 80, GetColor(50, 50, 50), TRUE);
+                        float hpRate = (float)e->GetHP() / 100.0f; // 100はボスの最大HP
+                        DrawBox(startX, 50, startX + (int)(barWidth * hpRate), 80, GetColor(255, 0, 0), TRUE);
                         break;
                     }
                 }
             }
+
+            // ステータス表示
             SetFontSize(24);
             DrawFormatString(300, 10, GetColor(255, 150, 200), "HP %d / %d", player->GetHP(), player->GetMaxHP());
             DrawFormatString(550, 10, white, "ATK %d", player->GetAttack());
-            DrawFormatString(700, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)",
-                player->GetLevel(), player->GetExp(), player->GetNextExp());
+            DrawFormatString(700, 10, GetColor(255, 255, 0), "LV %d (EXP %d/%d)", player->GetLevel(), player->GetExp(), player->GetNextExp());
             DrawFormatString(10, 10, GetColor(255, 255, 255), "B%dF", stage->GetCurrentFloor());
             SetFontSize(16);
             break;
 
         case SCENE_GAMEOVER:
-            if (CheckSoundMem(bgmHandle) == 1)
-            {
-                StopSoundMem(bgmHandle);
-            }
-            DrawExtendGraph(0, 0, 1400, 700, overGraph, FALSE);
-            if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);
-            break;
-
         case SCENE_GAMECLEAR:
-            if (CheckSoundMem(bgmHandle) == 1)
-            {
-                StopSoundMem(bgmHandle);
-            }
-            DrawExtendGraph(0, 0, 1400, 700, clearGraph, FALSE);
+            if (CheckSoundMem(bgmHandle) == 1) StopSoundMem(bgmHandle);
+            DrawExtendGraph(0, 0, 1400, 700, (scene.GetScene() == SCENE_GAMEOVER ? overGraph : clearGraph), FALSE);
             if (Input::IsKeyDown(KEY_INPUT_SPACE)) scene.SetScene(SCENE_TITLE);
             break;
         }
@@ -406,7 +211,6 @@ int WINAPI WinMain(_In_ HINSTANCE h, _In_opt_ HINSTANCE hp, _In_ LPSTR l, _In_ i
         ScreenFlip();
         WaitTimer(16);
     }
-
     delete player;
     for (auto e : enemies)
     {

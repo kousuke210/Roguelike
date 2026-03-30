@@ -19,6 +19,79 @@ void Player::SetPosition(int map_x, int map_y)
 	this->map_y = map_y;
 }
 
+bool Player::ProcessInput(std::vector<Enemy*>& enemies) 
+{
+	if (!stage) return false;
+
+	// EƒL[‚ÅUŒ‚
+	if (Input::IsKeyDown(KEY_INPUT_E)) 
+	{
+		bool hitAny = false;
+		for (auto it = enemies.begin(); it != enemies.end(); ) 
+		{
+			Enemy* e = *it;
+			if (e && e->GetHP() > 0) 
+			{
+				float dx = abs((e->GetMapX() + 0.5f) - (map_x + 0.5f));
+				float dy = abs((e->GetMapY() + 0.5f) - (map_y + 0.5f));
+
+				bool isHit = (stage->GetCurrentFloor() % 5 == 0) ?
+					(dx <= 2.5f && dy <= 2.5f) : (dx + dy <= 1.5f);
+
+				if (isHit) 
+				{
+					hitAny = true;
+					if (e->TakeDamage(attack)) 
+					{
+						AddExp(10 + (stage->GetCurrentFloor() * 5));
+						delete e;
+						it = enemies.erase(it);
+						continue;
+					}
+				}
+			}
+			it++;
+		}
+		if (hitAny) { UpdateTurn(); return true; }
+	}
+	
+	// WASD‚ÅˆÚ“®
+	int dx = 0, dy = 0;
+	if (Input::IsKey(KEY_INPUT_W))      dy = -1;
+	else if (Input::IsKey(KEY_INPUT_S)) dy = 1;
+	else if (Input::IsKey(KEY_INPUT_A)) dx = -1;
+	else if (Input::IsKey(KEY_INPUT_D)) dx = 1;
+
+	if (dx != 0 || dy != 0) 
+	{
+		int nx = map_x + dx;
+		int ny = map_y + dy;
+
+		if (stage->CanMoveTo(nx, ny)) 
+		{
+			map_x = nx;
+			map_y = ny;
+			stage->UpdateCamera(map_x, map_y);
+			stage->GetItemManager()->PickUpItem(map_x, map_y, this);
+
+			// ŠK’i”»’è
+			if (stage->GetTileType(map_x, map_y) == TILE_STAIRS) 
+			{
+				stage->AdvanceFloor();
+				stage->GenerateMap();
+				for (auto e : enemies) delete e;
+				enemies.clear();
+				stage->SpawnEnemies(enemies);
+				SetPosition(stage->GetStartIdxX(), stage->GetStartIdxY());
+				ShowPickUpMessage("ŠK’i‚ð‰º‚è‚½...");
+			}
+			UpdateTurn();
+			return true;
+		}
+	}
+	return false;
+}
+
 bool Player::CheckCollision(int next_map_x, int next_map_y) 
 {
 	if (!stage) return true;

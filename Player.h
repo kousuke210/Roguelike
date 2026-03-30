@@ -14,6 +14,7 @@ public:
 	void SetStage(Stage* stage) { this->stage = stage; }
 	int GetMapX() const { return map_x; }
 	int GetMapY() const { return map_y; }
+	bool ProcessInput(std::vector<Enemy*>& enemies);
 
 	// ステータス関連
 	int GetHP() const { return hp; }
@@ -72,7 +73,8 @@ public:
 private:
 	int map_x;
 	int map_y;
-
+	int enemyClearTimer = 0;
+	bool stairsFoundMsg = false;
 	// ステータス
 	int hp;       // 現在の体力
 	int maxHP;    // 最大の体力
